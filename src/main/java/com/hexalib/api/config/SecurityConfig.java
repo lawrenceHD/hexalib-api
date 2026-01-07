@@ -35,12 +35,12 @@ public class SecurityConfig {
         return new BCryptPasswordEncoder();
     }
 
-    @Bean
-    public AuthenticationProvider authenticationProvider() {
-        DaoAuthenticationProvider provider = new DaoAuthenticationProvider(passwordEncoder());
-        provider.setUserDetailsService(userDetailsService);
-        return provider;
-    }
+   @Bean
+public AuthenticationProvider authenticationProvider() {
+    DaoAuthenticationProvider provider = new DaoAuthenticationProvider(userDetailsService); // ← UserDetailsService en paramètre du constructeur
+    provider.setPasswordEncoder(passwordEncoder());
+    return provider;
+}
 
     @Bean
     public AuthenticationManager authenticationManager() {

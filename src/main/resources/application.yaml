@@ -1,17 +1,16 @@
 spring:
   application:
     name: hexalib-api
-  
+
   datasource:
-    url: jdbc:mysql://localhost:3306/hexalib_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+    url: jdbc:mysql://localhost:3306/hexalib?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
     username: root
     password: 
     driver-class-name: com.mysql.cj.jdbc.Driver
-    
     hikari:
       maximum-pool-size: 10
       minimum-idle: 5
-  
+
   jpa:
     hibernate:
       ddl-auto: update
@@ -20,11 +19,6 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.MySQLDialect
         format_sql: true
-  
-  security:
-    user:
-      name: admin
-      password: admin123
 
 server:
   port: 8080
@@ -44,3 +38,4 @@ logging:
     com.hexalib.api: DEBUG
     org.springframework.web: DEBUG
     org.hibernate.SQL: DEBUG
+    org.hibernate.orm.jdbc.bind: TRACE  # Pour voir les valeurs bindées dans les requêtes

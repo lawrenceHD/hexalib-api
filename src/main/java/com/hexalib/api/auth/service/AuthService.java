@@ -4,7 +4,7 @@ import com.hexalib.api.auth.dto.LoginRequest;
 import com.hexalib.api.auth.dto.LoginResponse;
 import com.hexalib.api.auth.dto.RegisterRequest;
 import com.hexalib.api.auth.dto.UserDto;
-import com.hexalib.api.auth.entity.User;
+import com.hexalib.api.auth.model.User;
 import com.hexalib.api.auth.repository.UserRepository;
 import com.hexalib.api.auth.security.JwtTokenProvider;
 import com.hexalib.api.common.exception.BadRequestException;

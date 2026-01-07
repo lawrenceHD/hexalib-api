@@ -1,11 +1,12 @@
 package com.hexalib.api.auth.dto;
 
-import com.hexalib.api.auth.entity.User;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+
+import com.hexalib.api.auth.model.User;
 
 @Data
 @NoArgsConstructor

@@ -1,6 +1,7 @@
 package com.hexalib.api.auth.dto;
 
-import com.hexalib.api.auth.entity.User;
+import com.hexalib.api.auth.model.User;
+
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;

@@ -1,4 +1,4 @@
-package com.hexalib.api.auth.entity;
+package com.hexalib.api.auth.model;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;

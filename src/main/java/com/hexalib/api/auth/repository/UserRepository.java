@@ -1,8 +1,9 @@
 package com.hexalib.api.auth.repository;
 
-import com.hexalib.api.auth.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
+
+import com.hexalib.api.auth.model.User;
 
 import java.util.Optional;
 
