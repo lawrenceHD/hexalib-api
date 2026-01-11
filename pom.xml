@@ -137,6 +137,28 @@
     <groupId>org.apache.commons</groupId>
     <artifactId>commons-lang3</artifactId>
 </dependency>
+
+<!-- iText 7 pour la génération de PDF -->
+    <dependency>
+        <groupId>com.itextpdf</groupId>
+        <artifactId>itext7-core</artifactId>
+        <version>7.2.5</version>
+        <type>pom</type>
+    </dependency>
+
+    <!-- Layout pour iText -->
+    <dependency>
+        <groupId>com.itextpdf</groupId>
+        <artifactId>layout</artifactId>
+        <version>7.2.5</version>
+    </dependency>
+
+    <!-- Kernel pour iText -->
+    <dependency>
+        <groupId>com.itextpdf</groupId>
+        <artifactId>kernel</artifactId>
+        <version>7.2.5</version>
+    </dependency>
 	</dependencies>
 
 	<build>
