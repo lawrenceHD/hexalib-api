@@ -253,7 +253,7 @@ public class CommandePdfService {
 
         // Lignes du tableau
         boolean alternate = false;
-        for (LigneCommandeFournisseur ligne : commande.getLignes()) {
+for (LigneCommandeFournisseur ligne : commande.getLignes()) {
             DeviceRgb bgColor = alternate ? LIGHT_GRAY : WHITE;
             
             table.addCell(createTableCell(ligne.getLivre().getCode(), regularFont, TextAlignment.CENTER, bgColor));
