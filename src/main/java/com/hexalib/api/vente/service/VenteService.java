@@ -20,6 +20,8 @@ import com.hexalib.api.vente.model.StatutVente;
 import com.hexalib.api.vente.model.Vente;
 import com.hexalib.api.vente.repository.LigneVenteRepository;
 import com.hexalib.api.vente.repository.VenteRepository;
+import com.hexalib.api.vente.dto.GlobalStatsResponse;
+import com.hexalib.api.vente.dto.VendeurStatsResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
