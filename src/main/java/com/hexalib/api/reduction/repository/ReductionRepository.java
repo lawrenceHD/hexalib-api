@@ -17,34 +17,28 @@ import java.util.UUID;
 @Repository
 public interface ReductionRepository extends JpaRepository<Reduction, UUID> {
 
-    // Recherche par intitulé
     Page<Reduction> findByIntituleContainingIgnoreCase(String intitule, Pageable pageable);
 
-    // Réductions actives
     Page<Reduction> findByActifTrue(Pageable pageable);
 
-    // Réductions expirées
     @Query("SELECT r FROM Reduction r WHERE r.dateFin < :today")
     Page<Reduction> findExpired(@Param("today") LocalDate today, Pageable pageable);
 
-    // Réductions valides (actives + période en cours)
     @Query("SELECT r FROM Reduction r WHERE r.actif = true " +
            "AND r.dateDebut <= :today AND r.dateFin >= :today")
     List<Reduction> findValidReductions(@Param("today") LocalDate today);
 
-    // Réduction applicable à un livre spécifique
     @Query("SELECT r FROM Reduction r WHERE r.actif = true " +
            "AND r.dateDebut <= :today AND r.dateFin >= :today " +
            "AND ((r.cible = 'GLOBALE') " +
            "OR (r.cible = 'LIVRE' AND r.cibleId = :livreId) " +
            "OR (r.cible = 'CATEGORIE' AND r.cibleId = :categorieId))")
     List<Reduction> findApplicableReductions(
-        @Param("livreId") UUID livreId,
-        @Param("categorieId") UUID categorieId,
+        @Param("livreId") String livreId,
+        @Param("categorieId") String categorieId,
         @Param("today") LocalDate today
     );
 
-    // Meilleure réduction pour un livre (priorité : Livre > Catégorie > Globale)
     @Query("SELECT r FROM Reduction r WHERE r.actif = true " +
            "AND r.dateDebut <= :today AND r.dateFin >= :today " +
            "AND ((r.cible = 'LIVRE' AND r.cibleId = :livreId) " +
@@ -55,17 +49,14 @@ public interface ReductionRepository extends JpaRepository<Reduction, UUID> {
            "WHEN 'CATEGORIE' THEN 2 " +
            "WHEN 'GLOBALE' THEN 3 END")
     Optional<Reduction> findBestReductionForLivre(
-        @Param("livreId") UUID livreId,
-        @Param("categorieId") UUID categorieId,
+        @Param("livreId") String livreId,
+        @Param("categorieId") String categorieId,
         @Param("today") LocalDate today
     );
 
-    // Réductions par cible
     Page<Reduction> findByCible(CibleReduction cible, Pageable pageable);
 
-    // Réductions pour une cible spécifique
-    List<Reduction> findByCibleAndCibleId(CibleReduction cible, UUID cibleId);
+    List<Reduction> findByCibleAndCibleId(CibleReduction cible, String cibleId);
 
-    // Compter les réductions actives
     long countByActifTrue();
 }

@@ -1,7 +1,6 @@
 package com.hexalib.api.reduction.controller;
 
 import com.hexalib.api.common.dto.ApiResponse;
-import com.hexalib.api.common.dto.PageResponse;
 import com.hexalib.api.reduction.dto.ReductionRequest;
 import com.hexalib.api.reduction.dto.ReductionResponse;
 import com.hexalib.api.reduction.service.ReductionService;
@@ -31,9 +30,6 @@ public class ReductionController {
 
     private final ReductionService reductionService;
 
-    /**
-     * Créer une nouvelle réduction (Admin uniquement)
-     */
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Créer une réduction", description = "Ajouter une nouvelle réduction (Admin uniquement)")
@@ -47,9 +43,6 @@ public class ReductionController {
                 .body(ApiResponse.success("Réduction créée avec succès", response));
     }
 
-    /**
-     * Récupérer toutes les réductions (paginées)
-     */
     @GetMapping
     @Operation(summary = "Lister les réductions", description = "Récupérer toutes les réductions avec pagination")
     public ResponseEntity<ApiResponse<Page<ReductionResponse>>> getAll(
@@ -62,19 +55,14 @@ public class ReductionController {
         return ResponseEntity.ok(ApiResponse.success(reductions));
     }
 
-    /**
-     * Récupérer une réduction par ID
-     */
     @GetMapping("/{id}")
     @Operation(summary = "Détail d'une réduction", description = "Récupérer les détails d'une réduction par son ID")
-    public ResponseEntity<ApiResponse<ReductionResponse>> getById(@PathVariable UUID id) {
-        ReductionResponse response = reductionService.getById(id);
+    public ResponseEntity<ApiResponse<ReductionResponse>> getById(@PathVariable String id) {
+        // ⚠️ Conversion String -> UUID
+        ReductionResponse response = reductionService.getById(UUID.fromString(id));
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
-    /**
-     * Rechercher des réductions par intitulé
-     */
     @GetMapping("/search")
     @Operation(summary = "Rechercher des réductions", description = "Rechercher des réductions par intitulé")
     public ResponseEntity<ApiResponse<Page<ReductionResponse>>> search(
@@ -88,9 +76,6 @@ public class ReductionController {
         return ResponseEntity.ok(ApiResponse.success(reductions));
     }
 
-    /**
-     * Récupérer les réductions actives
-     */
     @GetMapping("/actives")
     @Operation(summary = "Réductions actives", description = "Récupérer toutes les réductions actives")
     public ResponseEntity<ApiResponse<Page<ReductionResponse>>> getActives(
@@ -103,9 +88,6 @@ public class ReductionController {
         return ResponseEntity.ok(ApiResponse.success(reductions));
     }
 
-    /**
-     * Récupérer les réductions valides (actives + période en cours)
-     */
     @GetMapping("/valides")
     @Operation(summary = "Réductions valides", description = "Récupérer les réductions valides (actives et dans la période)")
     public ResponseEntity<ApiResponse<List<ReductionResponse>>> getValidReductions() {
@@ -113,9 +95,6 @@ public class ReductionController {
         return ResponseEntity.ok(ApiResponse.success(reductions));
     }
 
-    /**
-     * Récupérer les réductions expirées
-     */
     @GetMapping("/expirees")
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Réductions expirées", description = "Récupérer toutes les réductions expirées (Admin uniquement)")
@@ -129,68 +108,58 @@ public class ReductionController {
         return ResponseEntity.ok(ApiResponse.success(reductions));
     }
 
-    /**
-     * Récupérer les réductions applicables à un livre
-     */
     @GetMapping("/livre/{livreId}")
     @Operation(summary = "Réductions pour un livre", description = "Récupérer toutes les réductions applicables à un livre")
     public ResponseEntity<ApiResponse<List<ReductionResponse>>> getApplicableForLivre(
-            @PathVariable UUID livreId) {
+            @PathVariable String livreId) {
         
+        // ⚠️ Conversion String -> UUID
         List<ReductionResponse> reductions = 
-                reductionService.getApplicableReductionsForLivre(livreId);
+                reductionService.getApplicableReductionsForLivre(UUID.fromString(livreId));
         
         return ResponseEntity.ok(ApiResponse.success(reductions));
     }
 
-    /**
-     * Récupérer la meilleure réduction pour un livre
-     */
     @GetMapping("/livre/{livreId}/meilleure")
     @Operation(summary = "Meilleure réduction pour un livre", description = "Récupérer la meilleure réduction applicable à un livre")
     public ResponseEntity<ApiResponse<ReductionResponse>> getBestForLivre(
-            @PathVariable UUID livreId) {
+            @PathVariable String livreId) {
         
-        ReductionResponse reduction = reductionService.getBestReductionForLivre(livreId);
+        // ⚠️ Conversion String -> UUID
+        ReductionResponse reduction = reductionService.getBestReductionForLivre(UUID.fromString(livreId));
         
         return ResponseEntity.ok(ApiResponse.success(reduction));
     }
 
-    /**
-     * Mettre à jour une réduction (Admin uniquement)
-     */
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Modifier une réduction", description = "Modifier les informations d'une réduction (Admin uniquement)")
     public ResponseEntity<ApiResponse<ReductionResponse>> update(
-            @PathVariable UUID id,
+            @PathVariable String id,
             @Valid @RequestBody ReductionRequest request) {
         
-        ReductionResponse response = reductionService.update(id, request);
+        // ⚠️ Conversion String -> UUID
+        ReductionResponse response = reductionService.update(UUID.fromString(id), request);
         
         return ResponseEntity.ok(ApiResponse.success("Réduction mise à jour avec succès", response));
     }
 
-    /**
-     * Activer/Désactiver une réduction (Admin uniquement)
-     */
     @PatchMapping("/{id}/toggle")
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Activer/Désactiver une réduction", description = "Changer le statut actif d'une réduction (Admin uniquement)")
-    public ResponseEntity<ApiResponse<ReductionResponse>> toggleActif(@PathVariable UUID id) {
-        ReductionResponse response = reductionService.toggleActif(id);
+    public ResponseEntity<ApiResponse<ReductionResponse>> toggleActif(@PathVariable String id) {
+        // ⚠️ Conversion String -> UUID
+        ReductionResponse response = reductionService.toggleActif(UUID.fromString(id));
         
         return ResponseEntity.ok(ApiResponse.success("Statut de la réduction modifié", response));
     }
 
-    /**
-     * Supprimer une réduction (Admin uniquement)
-     */
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Supprimer une réduction", description = "Supprimer une réduction (Admin uniquement)")
-    public ResponseEntity<ApiResponse<Void>> delete(@PathVariable UUID id) {
-        reductionService.delete(id);
+    public ResponseEntity<ApiResponse<Void>> delete(@PathVariable String id) {
+        // ⚠️ Conversion String -> UUID
+        reductionService.delete(UUID.fromString(id));
         
         return ResponseEntity.ok(ApiResponse.success("Réduction supprimée avec succès", null));
     }

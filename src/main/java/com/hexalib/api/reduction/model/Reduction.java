@@ -1,7 +1,5 @@
 package com.hexalib.api.reduction.model;
 
-import com.hexalib.api.categorie.model.Categorie;
-import com.hexalib.api.livre.model.Livre;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -25,6 +23,7 @@ public class Reduction {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(columnDefinition = "VARCHAR(36)")
     private UUID id;
 
     @Column(nullable = false, length = 100)
@@ -34,27 +33,18 @@ public class Reduction {
     private String description;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, length = 20)
     private TypeReduction type;
 
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal valeur;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, length = 20)
     private CibleReduction cible;
 
-    @Column(name = "cible_id")
-    private UUID cibleId;
-
-    // Relations optionnelles (pour faciliter les requêtes)
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "cible_id", insertable = false, updatable = false)
-    private Livre livre;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "cible_id", insertable = false, updatable = false)
-    private Categorie categorie;
+    @Column(name = "cible_id", columnDefinition = "VARCHAR(36)")
+    private String cibleId;
 
     @Column(nullable = false, name = "date_debut")
     private LocalDate dateDebut;
@@ -62,7 +52,7 @@ public class Reduction {
     @Column(nullable = false, name = "date_fin")
     private LocalDate dateFin;
 
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "TINYINT(1) DEFAULT 1")
     private Boolean actif = true;
 
     @CreationTimestamp
@@ -73,7 +63,6 @@ public class Reduction {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-    // Méthode utilitaire pour vérifier si la réduction est valide
     public boolean estValide() {
         LocalDate aujourdhui = LocalDate.now();
         return actif && 
@@ -81,14 +70,14 @@ public class Reduction {
                !aujourdhui.isAfter(dateFin);
     }
 
-    // Méthode pour calculer le montant de réduction
     public BigDecimal calculerMontantReduction(BigDecimal prixOriginal) {
         if (!estValide()) {
             return BigDecimal.ZERO;
         }
 
         if (type == TypeReduction.POURCENTAGE) {
-            return prixOriginal.multiply(valeur).divide(new BigDecimal("100"));
+            return prixOriginal.multiply(valeur)
+                    .divide(new BigDecimal("100"), 2, java.math.RoundingMode.HALF_UP);
         } else {
             return valeur;
         }
