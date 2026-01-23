@@ -14,13 +14,13 @@ import java.util.UUID;
 @Builder
 public class LigneVenteResponse {
 
-    private UUID id;
-    private UUID livreId;
+    private String id;
+    private String livreId;
     private String titreLivre;
     private String codeLivre;
     private BigDecimal prixUnitaire;
     private Integer quantite;
-    private UUID reductionId;
+    private String reductionId;
     private String reductionIntitule;
     private BigDecimal montantReduction;
     private BigDecimal sousTotal;

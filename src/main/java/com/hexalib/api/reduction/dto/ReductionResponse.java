@@ -18,13 +18,13 @@ import java.util.UUID;
 @Builder
 public class ReductionResponse {
 
-    private UUID id;
+    private String id;
     private String intitule;
     private String description;
     private TypeReduction type;
     private BigDecimal valeur;
     private CibleReduction cible;
-    private UUID cibleId;
+    private String cibleId;
     private String cibleNom; // Nom du livre ou catégorie si applicable
     private LocalDate dateDebut;
     private LocalDate dateFin;

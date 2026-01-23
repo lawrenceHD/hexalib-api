@@ -84,9 +84,9 @@ public class ReductionService {
         Livre livre = livreRepository.findById(livreId.toString())
                 .orElseThrow(() -> new ResourceNotFoundException("Livre non trouvé"));
 
-        String categorieId = livre.getCategorie().getId();
+        String categorieId = livre.getCategorie() != null ? livre.getCategorie().getId() : null;
 
-        List<Reduction> reductions = reductionRepository.findApplicableReductions(
+        List<Reduction> reductions = reductionRepository.findApplicableReductionsOrdered(
                 livreId.toString(),
                 categorieId,
                 LocalDate.now()
@@ -99,18 +99,27 @@ public class ReductionService {
 
     @Transactional(readOnly = true)
     public ReductionResponse getBestReductionForLivre(UUID livreId) {
+        log.debug("Recherche de la meilleure réduction pour le livre ID: {}", livreId);
+
         Livre livre = livreRepository.findById(livreId.toString())
-                .orElseThrow(() -> new ResourceNotFoundException("Livre non trouvé"));
+                .orElseThrow(() -> new ResourceNotFoundException("Livre non trouvé avec ID: " + livreId));
 
-        String categorieId = livre.getCategorie().getId();
+        String categorieId = livre.getCategorie() != null ? livre.getCategorie().getId() : null;
 
-        return reductionRepository.findBestReductionForLivre(
-                        livreId.toString(),
-                        categorieId,
-                        LocalDate.now()
-                )
-                .map(this::mapToResponse)
-                .orElse(null);
+        return reductionRepository.findBestApplicableReductionForLivre(
+                livreId.toString(),
+                categorieId,
+                LocalDate.now()
+            )
+            .map(reduction -> {
+                log.debug("Meilleure réduction trouvée : {} (valeur: {}, cible: {})",
+                        reduction.getIntitule(), reduction.getValeur(), reduction.getCible());
+                return mapToResponse(reduction);
+            })
+            .orElseGet(() -> {
+                log.debug("Aucune réduction applicable pour le livre ID: {}", livreId);
+                return null;
+            });
     }
 
     public ReductionResponse update(UUID id, ReductionRequest request) {
@@ -151,7 +160,7 @@ public class ReductionService {
     }
 
     private Reduction findReductionById(UUID id) {
-        return reductionRepository.findById(id)
+        return reductionRepository.findById(id.toString())
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Réduction non trouvée avec l'ID: " + id));
     }
@@ -187,7 +196,7 @@ public class ReductionService {
 
         if (reduction.getCible() == CibleReduction.LIVRE && reduction.getCibleId() != null) {
             cibleNom = livreRepository.findById(reduction.getCibleId())
-                    .map(livre -> livre.getTitre())
+                    .map(Livre::getTitre)
                     .orElse(null);
         } else if (reduction.getCible() == CibleReduction.CATEGORIE && reduction.getCibleId() != null) {
             cibleNom = categorieRepository.findById(reduction.getCibleId())
@@ -202,7 +211,7 @@ public class ReductionService {
                 .type(reduction.getType())
                 .valeur(reduction.getValeur())
                 .cible(reduction.getCible())
-                .cibleId(reduction.getCibleId() != null ? UUID.fromString(reduction.getCibleId()) : null)
+                .cibleId(reduction.getCibleId() != null ? reduction.getCibleId() : null)
                 .cibleNom(cibleNom)
                 .dateDebut(reduction.getDateDebut())
                 .dateFin(reduction.getDateFin())

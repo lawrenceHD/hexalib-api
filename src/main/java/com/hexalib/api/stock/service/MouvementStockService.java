@@ -216,7 +216,7 @@ public class MouvementStockService {
     private MouvementStockResponse mapToResponse(MouvementStock mouvement) {
         return MouvementStockResponse.builder()
                 .id(mouvement.getId())
-                .livreId(UUID.fromString(mouvement.getLivre().getId()))
+                .livreId(mouvement.getLivre().getId())
                 .titreLivre(mouvement.getLivre().getTitre())
                 .codeLivre(mouvement.getLivre().getCode())
                 .typeMouvement(mouvement.getTypeMouvement())

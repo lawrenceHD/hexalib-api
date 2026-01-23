@@ -42,7 +42,7 @@ public class FactureService {
     public byte[] genererFacturePDF(UUID venteId) {
         log.info("Génération de la facture PDF pour la vente: {}", venteId);
 
-        Vente vente = venteRepository.findById(venteId)
+        Vente vente = venteRepository.findById(venteId.toString())
                 .orElseThrow(() -> new ResourceNotFoundException("Vente non trouvée"));
 
         try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {

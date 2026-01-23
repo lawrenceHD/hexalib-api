@@ -15,8 +15,8 @@ import java.util.UUID;
 @Builder
 public class MouvementStockResponse {
 
-    private UUID id;
-    private UUID livreId;
+    private String id;
+    private String livreId;
     private String titreLivre;
     private String codeLivre;
     private TypeMouvement typeMouvement;

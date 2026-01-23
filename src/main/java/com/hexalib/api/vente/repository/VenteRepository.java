@@ -17,7 +17,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Repository
-public interface VenteRepository extends JpaRepository<Vente, UUID> {
+public interface VenteRepository extends JpaRepository<Vente, String> {
 
     Optional<Vente> findByNumeroFacture(String numeroFacture);
 

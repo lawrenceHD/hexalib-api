@@ -28,7 +28,7 @@ public class Vente {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(columnDefinition = "VARCHAR(36)")
-    private UUID id;
+    private String id;
 
     @Column(name = "numero_facture", nullable = false, unique = true, length = 30)
     private String numeroFacture;

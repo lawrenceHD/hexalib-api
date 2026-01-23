@@ -206,47 +206,60 @@ public class VenteService {
 
     // ==================== MÉTHODES PRIVÉES ====================
 
-    /**
-     * Créer une ligne de vente avec application automatique de réduction
-     */
-    private LigneVente createLigneVente(LigneVenteRequest request, Vente vente) {
-        Livre livre = livreRepository.findById(request.getLivreId().toString())
-                .orElseThrow(() -> new ResourceNotFoundException("Livre non trouvé"));
+   /**
+ * Créer une ligne de vente avec application automatique de la meilleure réduction
+ */
+private LigneVente createLigneVente(LigneVenteRequest request, Vente vente) {
+    log.debug("Création ligne vente pour livre ID: {}, quantité: {}", request.getLivreId(), request.getQuantite());
 
-        // Vérifier le stock
-        if (livre.getQuantiteStock() < request.getQuantite()) {
-            throw new BadRequestException(
-                String.format("Stock insuffisant pour '%s'. Disponible: %d, Demandé: %d",
-                    livre.getTitre(), livre.getQuantiteStock(), request.getQuantite())
-            );
-        }
+    Livre livre = livreRepository.findById(request.getLivreId().toString())
+            .orElseThrow(() -> new ResourceNotFoundException(
+                    "Livre non trouvé avec ID: " + request.getLivreId()));
 
-        LigneVente ligne = new LigneVente();
-        ligne.setVente(vente);
-        ligne.setLivre(livre);
-        ligne.setTitreLivre(livre.getTitre());
-        ligne.setCodeLivre(livre.getCode());
-        ligne.setPrixUnitaire(livre.getPrixVente());
-        ligne.setQuantite(request.getQuantite());
-
-        // Appliquer la meilleure réduction
-        Reduction meilleure = reductionRepository.findBestReductionForLivre(
-                livre.getId(),
-                livre.getCategorie().getId(),
-                LocalDate.now()
-        ).orElse(null);
-
-        if (meilleure != null) {
-            BigDecimal montantReduc = meilleure.calculerMontantReduction(
-                ligne.getPrixUnitaire().multiply(BigDecimal.valueOf(ligne.getQuantite()))
-            );
-            ligne.setReduction(meilleure);
-            ligne.setMontantReduction(montantReduc);
-        }
-
-        ligne.calculerSousTotal();
-        return ligne;
+    // Vérifier le stock disponible
+    if (livre.getQuantiteStock() < request.getQuantite()) {
+        throw new BadRequestException(
+            String.format("Stock insuffisant pour '%s'. Disponible: %d, Demandé: %d",
+                livre.getTitre(), livre.getQuantiteStock(), request.getQuantite())
+        );
     }
+
+    LigneVente ligne = new LigneVente();
+    ligne.setVente(vente);
+    ligne.setLivre(livre);
+    ligne.setTitreLivre(livre.getTitre());
+    ligne.setCodeLivre(livre.getCode());
+    ligne.setPrixUnitaire(livre.getPrixVente());
+    ligne.setQuantite(request.getQuantite());
+
+    // Récupérer la meilleure réduction applicable (sûre même avec plusieurs résultats)
+    String categorieId = livre.getCategorie() != null ? livre.getCategorie().getId() : null;
+
+    Reduction meilleure = reductionRepository.findBestApplicableReductionForLivre(
+            livre.getId(),
+            categorieId,
+            LocalDate.now()
+    ).orElse(null);
+
+    if (meilleure != null) {
+        log.debug("Meilleure réduction appliquée: {} (type: {}, valeur: {})",
+                meilleure.getIntitule(), meilleure.getType(), meilleure.getValeur());
+
+        BigDecimal montantReduc = meilleure.calculerMontantReduction(
+            ligne.getPrixUnitaire().multiply(BigDecimal.valueOf(ligne.getQuantite()))
+        );
+
+        ligne.setReduction(meilleure);
+        ligne.setMontantReduction(montantReduc);
+    } else {
+        log.debug("Aucune réduction applicable pour le livre {}", livre.getTitre());
+        ligne.setMontantReduction(BigDecimal.ZERO);
+    }
+
+    ligne.calculerSousTotal();
+    return ligne;
+}
+
 
     /**
      * Valider le stock avant création de vente
@@ -342,7 +355,7 @@ public class VenteService {
      * Trouver une vente par ID
      */
     private Vente findVenteById(UUID id) {
-        return venteRepository.findById(id)
+        return venteRepository.findById(id.toString())
                 .orElseThrow(() -> new ResourceNotFoundException("Vente non trouvée avec l'ID: " + id));
     }
 
@@ -358,7 +371,7 @@ public class VenteService {
                 .id(vente.getId())
                 .numeroFacture(vente.getNumeroFacture())
                 .dateVente(vente.getDateVente())
-                .vendeurId(UUID.fromString(vente.getVendeur().getId()))
+                .vendeurId(vente.getVendeur().getId())
                 .vendeurNom(vente.getVendeur().getNomComplet())
                 .montantHT(vente.getMontantHT())
                 .montantReductions(vente.getMontantReductions())
@@ -376,7 +389,7 @@ public class VenteService {
     private LigneVenteResponse mapLigneToResponse(LigneVente ligne) {
         return LigneVenteResponse.builder()
                 .id(ligne.getId())
-                .livreId(UUID.fromString(ligne.getLivre().getId()))
+                .livreId(ligne.getLivre().getId())
                 .titreLivre(ligne.getTitreLivre())
                 .codeLivre(ligne.getCodeLivre())
                 .prixUnitaire(ligne.getPrixUnitaire())

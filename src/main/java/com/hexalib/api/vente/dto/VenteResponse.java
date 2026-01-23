@@ -17,10 +17,10 @@ import java.util.UUID;
 @Builder
 public class VenteResponse {
 
-    private UUID id;
+    private String id;
     private String numeroFacture;
     private LocalDateTime dateVente;
-    private UUID vendeurId;
+    private String vendeurId;
     private String vendeurNom;
     private BigDecimal montantHT;
     private BigDecimal montantReductions;
