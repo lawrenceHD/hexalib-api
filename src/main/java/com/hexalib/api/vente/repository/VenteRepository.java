@@ -61,4 +61,24 @@ public interface VenteRepository extends JpaRepository<Vente, String> {
         @Param("vendeurId") String vendeurId,
         @Param("date") LocalDate date
     );
+
+    // Compter les ventes d'un vendeur entre deux dates
+@Query("SELECT COUNT(v) FROM Vente v WHERE v.statut = 'VALIDEE' " +
+       "AND v.vendeur.id = :vendeurId " +
+       "AND v.dateVente BETWEEN :debut AND :fin")
+long countByVendeurBetween(
+    @Param("vendeurId") String vendeurId,
+    @Param("debut") LocalDateTime debut,
+    @Param("fin") LocalDateTime fin
+);
+
+// Somme CA d'un vendeur entre deux dates
+@Query("SELECT SUM(v.montantTTC) FROM Vente v WHERE v.statut = 'VALIDEE' " +
+       "AND v.vendeur.id = :vendeurId " +
+       "AND v.dateVente BETWEEN :debut AND :fin")
+BigDecimal sumMontantByVendeurBetween(
+    @Param("vendeurId") String vendeurId,
+    @Param("debut") LocalDateTime debut,
+    @Param("fin") LocalDateTime fin
+);
 }

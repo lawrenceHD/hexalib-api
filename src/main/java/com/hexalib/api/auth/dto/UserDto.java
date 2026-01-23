@@ -5,12 +5,14 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import lombok.Builder;
 
 import com.hexalib.api.auth.model.User;
 
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 public class UserDto {
     private String id;
     private String nomComplet;
@@ -19,6 +21,7 @@ public class UserDto {
     private User.Statut statut;
     private LocalDateTime dateCreation;
     private LocalDateTime derniereConnexion;
+    private boolean premiereConnexion;  // ← ajouté si tu l'utilises
 
     public static UserDto fromEntity(User user) {
         return new UserDto(
@@ -28,7 +31,8 @@ public class UserDto {
                 user.getRole(),
                 user.getStatut(),
                 user.getDateCreation(),
-                user.getDerniereConnexion()
+                user.getDerniereConnexion(),
+                user.getPremiereConnexion()  // ← si présent
         );
     }
 }

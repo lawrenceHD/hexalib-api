@@ -43,7 +43,15 @@ public class User implements UserDetails {
     @Column(nullable = false, updatable = false)
     private LocalDateTime dateCreation = LocalDateTime.now();
 
-    private LocalDateTime derniereConnexion;
+
+    @Column(name = "premiere_connexion", columnDefinition = "TINYINT(1) DEFAULT 1")
+private Boolean premiereConnexion = true;
+
+@Column(name = "derniere_connexion")
+private LocalDateTime derniereConnexion;
+
+@Column(name = "mot_de_passe_temporaire", columnDefinition = "TINYINT(1) DEFAULT 0")
+private Boolean motDePasseTemporaire = false;
 
     // Enum Role
     public enum Role {
