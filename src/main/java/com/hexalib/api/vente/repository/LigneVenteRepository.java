@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.UUID;
 
 @Repository
-public interface LigneVenteRepository extends JpaRepository<LigneVente, UUID> {
+public interface LigneVenteRepository extends JpaRepository<LigneVente, String> {
 
     @Query("SELECT lv FROM LigneVente lv " +
            "WHERE lv.vente.statut = 'VALIDEE' " +

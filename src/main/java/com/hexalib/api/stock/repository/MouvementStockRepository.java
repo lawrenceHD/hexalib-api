@@ -14,7 +14,7 @@ import java.util.List;
 import java.util.UUID;
 
 @Repository
-public interface MouvementStockRepository extends JpaRepository<MouvementStock, UUID> {
+public interface MouvementStockRepository extends JpaRepository<MouvementStock, String> {
 
     // Mouvements par livre
     Page<MouvementStock> findByLivreIdOrderByDateMouvementDesc(String livreId, Pageable pageable);

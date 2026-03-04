@@ -1,0 +1,219 @@
+:: Spring Boot ::                (v4.0.1)
+
+2026-03-04T18:54:11.553+01:00  INFO 5732 --- [hexalib-api] [  restartedMain] com.hexalib.api.HexalibApiApplication    : Starting HexalibApiApplication using Java 25 with PID 5732 (C:\Users\Kuroshi\Documents\Projects\hexalib-api\target\classes started by Kuroshi in C:\Users\Kuroshi\Documents\Projects\hexalib-api)
+2026-03-04T18:54:11.560+01:00 DEBUG 5732 --- [hexalib-api] [  restartedMain] com.hexalib.api.HexalibApiApplication    : Running with Spring Boot v4.0.1, Spring v7.0.2
+2026-03-04T18:54:11.561+01:00  INFO 5732 --- [hexalib-api] [  restartedMain] com.hexalib.api.HexalibApiApplication    : No active profile set, falling back to 1 default profile: "default"
+2026-03-04T18:54:11.710+01:00  INFO 5732 --- [hexalib-api] [  restartedMain] .e.DevToolsPropertyDefaultsPostProcessor : Devtools property defaults active! Set 'spring.devtools.add-properties' to 'false' to disable
+2026-03-04T18:54:11.711+01:00  INFO 5732 --- [hexalib-api] [  restartedMain] .e.DevToolsPropertyDefaultsPostProcessor : For additional web related logging consider setting the 'logging.level.web' property to 'DEBUG'
+2026-03-04T18:54:13.628+01:00  INFO 5732 --- [hexalib-api] [  restartedMain] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-03-04T18:54:13.809+01:00  INFO 5732 --- [hexalib-api] [  restartedMain] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 165 ms. Found 11 JPA repository interfaces.
+2026-03-04T18:54:15.962+01:00  INFO 5732 --- [hexalib-api] [  restartedMain] o.s.boot.tomcat.TomcatWebServer          : Tomcat initialized with port 8080 (http)
+2026-03-04T18:54:16.001+01:00  INFO 5732 --- [hexalib-api] [  restartedMain] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2026-03-04T18:54:16.002+01:00  INFO 5732 --- [hexalib-api] [  restartedMain] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/11.0.15]
+2026-03-04T18:54:16.164+01:00  INFO 5732 --- [hexalib-api] [  restartedMain] b.w.c.s.WebApplicationContextInitializer : Root WebApplicationContext: initialization completed in 4451 ms
+2026-03-04T18:54:16.547+01:00  INFO 5732 --- [hexalib-api] [  restartedMain] org.hibernate.orm.jpa                    : HHH008540: Processing PersistenceUnitInfo [name: default]
+2026-03-04T18:54:16.664+01:00  INFO 5732 --- [hexalib-api] [  restartedMain] org.hibernate.orm.core                   : HHH000001: Hibernate ORM core version 7.2.0.Final
+2026-03-04T18:54:17.412+01:00  INFO 5732 --- [hexalib-api] [  restartedMain] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-03-04T18:54:17.486+01:00  INFO 5732 --- [hexalib-api] [  restartedMain] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2026-03-04T18:54:18.044+01:00  INFO 5732 --- [hexalib-api] [  restartedMain] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection com.mysql.cj.jdbc.ConnectionImpl@6f67db99
+2026-03-04T18:54:18.048+01:00  INFO 5732 --- [hexalib-api] [  restartedMain] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+2026-03-04T18:54:18.199+01:00  WARN 5732 --- [hexalib-api] [  restartedMain] org.hibernate.orm.deprecation            : HHH90000025: MySQLDialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2026-03-04T18:54:18.255+01:00  INFO 5732 --- [hexalib-api] [  restartedMain] org.hibernate.orm.connections.pooling    : HHH10001005: Database info:
+        Database JDBC URL [jdbc:mysql://localhost:3306/hexalib?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true]
+        Database driver: MySQL Connector/J
+        Database dialect: MySQLDialect
+        Database version: 8.0.31
+        Default catalog/schema: hexalib/undefined
+        Autocommit mode: undefined/unknown
+        Isolation level: REPEATABLE_READ [default REPEATABLE_READ]
+        JDBC fetch size: none
+        Pool: DataSourceConnectionProvider
+        Minimum pool size: undefined/unknown
+        Maximum pool size: undefined/unknown
+2026-03-04T18:54:20.415+01:00  INFO 5732 --- [hexalib-api] [  restartedMain] org.hibernate.orm.core                   : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-03-04T18:54:20.576+01:00 DEBUG 5732 --- [hexalib-api] [  restartedMain] org.hibernate.SQL                        : 
+    alter table lignes_vente
+       modify column id VARCHAR(36) not null
+Hibernate: 
+    alter table lignes_vente
+       modify column id VARCHAR(36) not null
+2026-03-04T18:54:20.667+01:00 DEBUG 5732 --- [hexalib-api] [  restartedMain] org.hibernate.SQL                        : 
+    alter table lignes_vente
+       modify column reduction_id VARCHAR(36)
+Hibernate: 
+    alter table lignes_vente
+       modify column reduction_id VARCHAR(36)
+2026-03-04T18:54:20.706+01:00 DEBUG 5732 --- [hexalib-api] [  restartedMain] org.hibernate.SQL                        : 
+    alter table lignes_vente
+       modify column vente_id VARCHAR(36) not null
+Hibernate: 
+    alter table lignes_vente
+       modify column vente_id VARCHAR(36) not null
+2026-03-04T18:54:20.754+01:00 DEBUG 5732 --- [hexalib-api] [  restartedMain] org.hibernate.SQL                        : 
+    alter table mouvements_stock
+       modify column id VARCHAR(36) not null
+Hibernate: 
+    alter table mouvements_stock
+       modify column id VARCHAR(36) not null
+2026-03-04T18:54:20.784+01:00 DEBUG 5732 --- [hexalib-api] [  restartedMain] org.hibernate.SQL                        : 
+    alter table mouvements_stock
+       modify column type_mouvement enum ('AJUSTEMENT','ENTREE','RETOUR','SORTIE') not null
+Hibernate: 
+    alter table mouvements_stock
+       modify column type_mouvement enum ('AJUSTEMENT','ENTREE','RETOUR','SORTIE') not null
+2026-03-04T18:54:20.838+01:00 DEBUG 5732 --- [hexalib-api] [  restartedMain] org.hibernate.SQL                        : 
+    alter table reductions
+       modify column id VARCHAR(36) not null
+Hibernate: 
+    alter table reductions
+       modify column id VARCHAR(36) not null
+2026-03-04T18:54:20.899+01:00 DEBUG 5732 --- [hexalib-api] [  restartedMain] org.hibernate.SQL                        : 
+    alter table reductions
+       modify column cible enum ('CATEGORIE','GLOBALE','LIVRE') not null
+Hibernate: 
+    alter table reductions
+       modify column cible enum ('CATEGORIE','GLOBALE','LIVRE') not null
+2026-03-04T18:54:20.947+01:00 DEBUG 5732 --- [hexalib-api] [  restartedMain] org.hibernate.SQL                        : 
+    alter table reductions
+       modify column cible_id VARCHAR(36)
+Hibernate: 
+    alter table reductions
+       modify column cible_id VARCHAR(36)
+2026-03-04T18:54:21.011+01:00 DEBUG 5732 --- [hexalib-api] [  restartedMain] org.hibernate.SQL                        : 
+    alter table reductions
+       modify column type enum ('MONTANT_FIXE','POURCENTAGE') not null
+Hibernate: 
+    alter table reductions
+       modify column type enum ('MONTANT_FIXE','POURCENTAGE') not null
+2026-03-04T18:54:21.090+01:00 DEBUG 5732 --- [hexalib-api] [  restartedMain] org.hibernate.SQL                        : 
+    alter table ventes
+       modify column id VARCHAR(36) not null
+Hibernate: 
+    alter table ventes
+       modify column id VARCHAR(36) not null
+2026-03-04T18:54:21.400+01:00 DEBUG 5732 --- [hexalib-api] [  restartedMain] org.hibernate.SQL                        : 
+    alter table ventes
+       modify column statut enum ('ANNULEE','VALIDEE') not null
+Hibernate: 
+    alter table ventes
+       modify column statut enum ('ANNULEE','VALIDEE') not null
+2026-03-04T18:54:21.618+01:00  INFO 5732 --- [hexalib-api] [  restartedMain] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-03-04T18:54:21.870+01:00  INFO 5732 --- [hexalib-api] [  restartedMain] o.s.d.j.r.query.QueryEnhancerFactories   : Hibernate is in classpath; If applicable, HQL parser will be used.
+2026-03-04T18:54:22.539+01:00 DEBUG 5732 --- [hexalib-api] [  restartedMain] c.h.a.a.s.JwtAuthenticationFilter        : Filter 'jwtAuthenticationFilter' configured for use
+2026-03-04T18:54:22.543+01:00 DEBUG 5732 --- [hexalib-api] [  restartedMain] o.s.w.f.ServerHttpObservationFilter      : Filter 'webMvcObservationFilter' configured for use
+2026-03-04T18:54:22.544+01:00 DEBUG 5732 --- [hexalib-api] [  restartedMain] o.springframework.web.filter.CorsFilter  : Filter 'corsFilter' configured for use
+2026-03-04T18:54:26.203+01:00  WARN 5732 --- [hexalib-api] [  restartedMain] ConfigServletWebServerApplicationContext : Exception encountered during context initialization - cancelling refresh attempt: org.springframework.beans.factory.UnsatisfiedDependencyException: Error creating bean with name 'rapportController' defined in file [C:\Users\Kuroshi\Documents\Projects\hexalib-api\target\classes\com\hexalib\api\rapport\controller\RapportController.class]: Unsatisfied dependency expressed through constructor parameter 0: Error creating bean with name 'rapportService' defined in file [C:\Users\Kuroshi\Documents\Projects\hexalib-api\target\classes\com\hexalib\api\rapport\service\RapportService.class]: Unsatisfied dependency expressed through constructor parameter 0: Error creating bean with name 'statistiqueService' defined in file [C:\Users\Kuroshi\Documents\Projects\hexalib-api\target\classes\com\hexalib\api\rapport\service\StatistiqueService.class]: Unsatisfied dependency expressed through constructor parameter 0: Error creating bean with name 'rapportRepository' defined in com.hexalib.api.rapport.repository.RapportRepository defined in @EnableJpaRepositories declared on HexalibApiApplication: Not a managed type: class java.lang.Object
+2026-03-04T18:54:26.212+01:00  INFO 5732 --- [hexalib-api] [  restartedMain] j.LocalContainerEntityManagerFactoryBean : Closing JPA EntityManagerFactory for persistence unit 'default'
+2026-03-04T18:54:26.225+01:00  INFO 5732 --- [hexalib-api] [  restartedMain] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Shutdown initiated...
+2026-03-04T18:54:26.258+01:00  INFO 5732 --- [hexalib-api] [  restartedMain] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Shutdown completed.
+2026-03-04T18:54:26.275+01:00  INFO 5732 --- [hexalib-api] [  restartedMain] o.apache.catalina.core.StandardService   : Stopping service [Tomcat]
+2026-03-04T18:54:26.328+01:00  INFO 5732 --- [hexalib-api] [  restartedMain] .s.b.a.l.ConditionEvaluationReportLogger : 
+
+Error starting ApplicationContext. To display the condition evaluation report re-run your application with 'debug' enabled.
+2026-03-04T18:54:26.418+01:00 ERROR 5732 --- [hexalib-api] [  restartedMain] o.s.boot.SpringApplication               : Application run failed
+
+org.springframework.beans.factory.UnsatisfiedDependencyException: Error creating bean with name 'rapportController' defined in file [C:\Users\Kuroshi\Documents\Projects\hexalib-api\target\classes\com\hexalib\api\rapport\controller\RapportController.class]: Unsatisfied dependency expressed through constructor parameter 0: Error creating bean with name 'rapportService' defined in file [C:\Users\Kuroshi\Documents\Projects\hexalib-api\target\classes\com\hexalib\api\rapport\service\RapportService.class]: Unsatisfied dependency expressed through constructor parameter 0: Error creating bean with name 'statistiqueService' defined in file [C:\Users\Kuroshi\Documents\Projects\hexalib-api\target\classes\com\hexalib\api\rapport\service\StatistiqueService.class]: Unsatisfied dependency expressed through constructor parameter 0: Error creating bean with name 'rapportRepository' defined in com.hexalib.api.rapport.repository.RapportRepository defined in @EnableJpaRepositories declared on HexalibApiApplication: Not a managed type: class java.lang.Object
+        at org.springframework.beans.factory.support.ConstructorResolver.createArgumentArray(ConstructorResolver.java:804) ~[spring-beans-7.0.2.jar:7.0.2]
+        at org.springframework.beans.factory.support.ConstructorResolver.autowireConstructor(ConstructorResolver.java:240) ~[spring-beans-7.0.2.jar:7.0.2]
+        at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.autowireConstructor(AbstractAutowireCapableBeanFactory.java:1382) ~[spring-beans-7.0.2.jar:7.0.2]
+        at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.createBeanInstance(AbstractAutowireCapableBeanFactory.java:1221) ~[spring-beans-7.0.2.jar:7.0.2]
+        at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.doCreateBean(AbstractAutowireCapableBeanFactory.java:565) ~[spring-beans-7.0.2.jar:7.0.2]
+        at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.createBean(AbstractAutowireCapableBeanFactory.java:525) ~[spring-beans-7.0.2.jar:7.0.2]
+        at org.springframework.beans.factory.support.AbstractBeanFactory.lambda$doGetBean$0(AbstractBeanFactory.java:333) 
+~[spring-beans-7.0.2.jar:7.0.2]
+        at org.springframework.beans.factory.support.DefaultSingletonBeanRegistry.getSingleton(DefaultSingletonBeanRegistry.java:371) ~[spring-beans-7.0.2.jar:7.0.2]
+        at org.springframework.beans.factory.support.AbstractBeanFactory.doGetBean(AbstractBeanFactory.java:331) ~[spring-beans-7.0.2.jar:7.0.2]
+        at org.springframework.beans.factory.support.AbstractBeanFactory.getBean(AbstractBeanFactory.java:196) ~[spring-beans-7.0.2.jar:7.0.2]
+        at org.springframework.beans.factory.support.DefaultListableBeanFactory.instantiateSingleton(DefaultListableBeanFactory.java:1218) ~[spring-beans-7.0.2.jar:7.0.2]
+        at org.springframework.beans.factory.support.DefaultListableBeanFactory.preInstantiateSingleton(DefaultListableBeanFactory.java:1184) ~[spring-beans-7.0.2.jar:7.0.2]
+        at org.springframework.beans.factory.support.DefaultListableBeanFactory.preInstantiateSingletons(DefaultListableBeanFactory.java:1121) ~[spring-beans-7.0.2.jar:7.0.2]
+        at org.springframework.context.support.AbstractApplicationContext.finishBeanFactoryInitialization(AbstractApplicationContext.java:993) ~[spring-context-7.0.2.jar:7.0.2]
+        at org.springframework.context.support.AbstractApplicationContext.refresh(AbstractApplicationContext.java:620) ~[spring-context-7.0.2.jar:7.0.2]
+        at org.springframework.boot.web.server.servlet.context.ServletWebServerApplicationContext.refresh(ServletWebServerApplicationContext.java:143) ~[spring-boot-web-server-4.0.1.jar:4.0.1]
+        at org.springframework.boot.SpringApplication.refresh(SpringApplication.java:756) ~[spring-boot-4.0.1.jar:4.0.1]  
+        at org.springframework.boot.SpringApplication.refreshContext(SpringApplication.java:445) ~[spring-boot-4.0.1.jar:4.0.1]
+        at org.springframework.boot.SpringApplication.run(SpringApplication.java:321) ~[spring-boot-4.0.1.jar:4.0.1]      
+        at org.springframework.boot.SpringApplication.run(SpringApplication.java:1365) ~[spring-boot-4.0.1.jar:4.0.1]     
+        at org.springframework.boot.SpringApplication.run(SpringApplication.java:1354) ~[spring-boot-4.0.1.jar:4.0.1]     
+        at com.hexalib.api.HexalibApiApplication.main(HexalibApiApplication.java:12) ~[classes/:na]
+        at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:104) ~[na:na] 
+        at java.base/java.lang.reflect.Method.invoke(Method.java:565) ~[na:na]
+        at org.springframework.boot.devtools.restart.RestartLauncher.run(RestartLauncher.java:52) ~[spring-boot-devtools-4.0.1.jar:4.0.1]
+Caused by: org.springframework.beans.factory.UnsatisfiedDependencyException: Error creating bean with name 'rapportService' defined in file [C:\Users\Kuroshi\Documents\Projects\hexalib-api\target\classes\com\hexalib\api\rapport\service\RapportService.class]: Unsatisfied dependency expressed through constructor parameter 0: Error creating bean with name 'statistiqueService' defined in file [C:\Users\Kuroshi\Documents\Projects\hexalib-api\target\classes\com\hexalib\api\rapport\service\StatistiqueService.class]: Unsatisfied dependency expressed through constructor parameter 0: Error creating bean with name 'rapportRepository' defined in com.hexalib.api.rapport.repository.RapportRepository defined in @EnableJpaRepositories declared on HexalibApiApplication: Not a managed type: class java.lang.Object
+        at org.springframework.beans.factory.support.ConstructorResolver.createArgumentArray(ConstructorResolver.java:804) ~[spring-beans-7.0.2.jar:7.0.2]
+        at org.springframework.beans.factory.support.ConstructorResolver.autowireConstructor(ConstructorResolver.java:240) ~[spring-beans-7.0.2.jar:7.0.2]
+        at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.autowireConstructor(AbstractAutowireCapableBeanFactory.java:1382) ~[spring-beans-7.0.2.jar:7.0.2]
+        at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.createBeanInstance(AbstractAutowireCapableBeanFactory.java:1221) ~[spring-beans-7.0.2.jar:7.0.2]
+        at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.doCreateBean(AbstractAutowireCapableBeanFactory.java:565) ~[spring-beans-7.0.2.jar:7.0.2]
+        at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.createBean(AbstractAutowireCapableBeanFactory.java:525) ~[spring-beans-7.0.2.jar:7.0.2]
+        at org.springframework.beans.factory.support.AbstractBeanFactory.lambda$doGetBean$0(AbstractBeanFactory.java:333) 
+~[spring-beans-7.0.2.jar:7.0.2]
+        at org.springframework.beans.factory.support.DefaultSingletonBeanRegistry.getSingleton(DefaultSingletonBeanRegistry.java:371) ~[spring-beans-7.0.2.jar:7.0.2]
+        at org.springframework.beans.factory.support.AbstractBeanFactory.doGetBean(AbstractBeanFactory.java:331) ~[spring-beans-7.0.2.jar:7.0.2]
+        at org.springframework.beans.factory.support.AbstractBeanFactory.getBean(AbstractBeanFactory.java:201) ~[spring-beans-7.0.2.jar:7.0.2]
+        at org.springframework.beans.factory.support.DefaultListableBeanFactory.resolveBean(DefaultListableBeanFactory.java:1225) ~[spring-beans-7.0.2.jar:7.0.2]
+        at org.springframework.beans.factory.support.DefaultListableBeanFactory.doResolveDependency(DefaultListableBeanFactory.java:1704) ~[spring-beans-7.0.2.jar:7.0.2]
+        at org.springframework.beans.factory.support.DefaultListableBeanFactory.resolveDependency(DefaultListableBeanFactory.java:1651) ~[spring-beans-7.0.2.jar:7.0.2]
+        at org.springframework.beans.factory.support.ConstructorResolver.resolveAutowiredArgument(ConstructorResolver.java:912) ~[spring-beans-7.0.2.jar:7.0.2]
+        at org.springframework.beans.factory.support.ConstructorResolver.createArgumentArray(ConstructorResolver.java:791) ~[spring-beans-7.0.2.jar:7.0.2]
+        ... 24 common frames omitted
+Caused by: org.springframework.beans.factory.UnsatisfiedDependencyException: Error creating bean with name 'statistiqueService' defined in file [C:\Users\Kuroshi\Documents\Projects\hexalib-api\target\classes\com\hexalib\api\rapport\service\StatistiqueService.class]: Unsatisfied dependency expressed through constructor parameter 0: Error creating bean with name 'rapportRepository' defined in com.hexalib.api.rapport.repository.RapportRepository defined in @EnableJpaRepositories declared on HexalibApiApplication: Not a managed type: class java.lang.Object
+        at org.springframework.beans.factory.support.ConstructorResolver.createArgumentArray(ConstructorResolver.java:804) ~[spring-beans-7.0.2.jar:7.0.2]
+        at org.springframework.beans.factory.support.ConstructorResolver.autowireConstructor(ConstructorResolver.java:240) ~[spring-beans-7.0.2.jar:7.0.2]
+        at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.autowireConstructor(AbstractAutowireCapableBeanFactory.java:1382) ~[spring-beans-7.0.2.jar:7.0.2]
+        at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.createBeanInstance(AbstractAutowireCapableBeanFactory.java:1221) ~[spring-beans-7.0.2.jar:7.0.2]
+        at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.doCreateBean(AbstractAutowireCapableBeanFactory.java:565) ~[spring-beans-7.0.2.jar:7.0.2]
+        at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.createBean(AbstractAutowireCapableBeanFactory.java:525) ~[spring-beans-7.0.2.jar:7.0.2]
+        at org.springframework.beans.factory.support.AbstractBeanFactory.lambda$doGetBean$0(AbstractBeanFactory.java:333) 
+~[spring-beans-7.0.2.jar:7.0.2]
+        at org.springframework.beans.factory.support.DefaultSingletonBeanRegistry.getSingleton(DefaultSingletonBeanRegistry.java:371) ~[spring-beans-7.0.2.jar:7.0.2]
+        at org.springframework.beans.factory.support.AbstractBeanFactory.doGetBean(AbstractBeanFactory.java:331) ~[spring-beans-7.0.2.jar:7.0.2]
+        at org.springframework.beans.factory.support.AbstractBeanFactory.getBean(AbstractBeanFactory.java:201) ~[spring-beans-7.0.2.jar:7.0.2]
+        at org.springframework.beans.factory.support.DefaultListableBeanFactory.resolveBean(DefaultListableBeanFactory.java:1225) ~[spring-beans-7.0.2.jar:7.0.2]
+        at org.springframework.beans.factory.support.DefaultListableBeanFactory.doResolveDependency(DefaultListableBeanFactory.java:1704) ~[spring-beans-7.0.2.jar:7.0.2]
+        at org.springframework.beans.factory.support.DefaultListableBeanFactory.resolveDependency(DefaultListableBeanFactory.java:1651) ~[spring-beans-7.0.2.jar:7.0.2]
+        at org.springframework.beans.factory.support.ConstructorResolver.resolveAutowiredArgument(ConstructorResolver.java:912) ~[spring-beans-7.0.2.jar:7.0.2]
+        at org.springframework.beans.factory.support.ConstructorResolver.createArgumentArray(ConstructorResolver.java:791) ~[spring-beans-7.0.2.jar:7.0.2]
+        ... 38 common frames omitted
+Caused by: org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'rapportRepository' defined in com.hexalib.api.rapport.repository.RapportRepository defined in @EnableJpaRepositories declared on HexalibApiApplication: Not a managed type: class java.lang.Object
+        at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.initializeBean(AbstractAutowireCapableBeanFactory.java:1817) ~[spring-beans-7.0.2.jar:7.0.2]
+        at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.doCreateBean(AbstractAutowireCapableBeanFactory.java:603) ~[spring-beans-7.0.2.jar:7.0.2]
+        at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.createBean(AbstractAutowireCapableBeanFactory.java:525) ~[spring-beans-7.0.2.jar:7.0.2]
+        at org.springframework.beans.factory.support.AbstractBeanFactory.lambda$doGetBean$0(AbstractBeanFactory.java:333) 
+~[spring-beans-7.0.2.jar:7.0.2]
+        at org.springframework.beans.factory.support.DefaultSingletonBeanRegistry.getSingleton(DefaultSingletonBeanRegistry.java:371) ~[spring-beans-7.0.2.jar:7.0.2]
+        at org.springframework.beans.factory.support.AbstractBeanFactory.doGetBean(AbstractBeanFactory.java:331) ~[spring-beans-7.0.2.jar:7.0.2]
+        at org.springframework.beans.factory.support.AbstractBeanFactory.getBean(AbstractBeanFactory.java:201) ~[spring-beans-7.0.2.jar:7.0.2]
+        at org.springframework.beans.factory.support.DefaultListableBeanFactory.resolveBean(DefaultListableBeanFactory.java:1225) ~[spring-beans-7.0.2.jar:7.0.2]
+        at org.springframework.beans.factory.support.DefaultListableBeanFactory.doResolveDependency(DefaultListableBeanFactory.java:1704) ~[spring-beans-7.0.2.jar:7.0.2]
+        at org.springframework.beans.factory.support.DefaultListableBeanFactory.resolveDependency(DefaultListableBeanFactory.java:1651) ~[spring-beans-7.0.2.jar:7.0.2]
+        at org.springframework.beans.factory.support.ConstructorResolver.resolveAutowiredArgument(ConstructorResolver.java:912) ~[spring-beans-7.0.2.jar:7.0.2]
+        at org.springframework.beans.factory.support.ConstructorResolver.createArgumentArray(ConstructorResolver.java:791) ~[spring-beans-7.0.2.jar:7.0.2]
+        ... 52 common frames omitted
+Caused by: java.lang.IllegalArgumentException: Not a managed type: class java.lang.Object
+        at org.hibernate.metamodel.model.domain.internal.JpaMetamodelImpl.managedType(JpaMetamodelImpl.java:254) ~[hibernate-core-7.2.0.Final.jar:7.2.0.Final]
+        at org.hibernate.metamodel.model.domain.internal.MappingMetamodelImpl.managedType(MappingMetamodelImpl.java:394) ~[hibernate-core-7.2.0.Final.jar:7.2.0.Final]
+        at org.hibernate.metamodel.model.domain.internal.MappingMetamodelImpl.managedType(MappingMetamodelImpl.java:85) ~[hibernate-core-7.2.0.Final.jar:7.2.0.Final]
+        at org.springframework.data.jpa.repository.support.JpaEntityInformationSupport.getEntityInformation(JpaEntityInformationSupport.java:92) ~[spring-data-jpa-4.0.1.jar:4.0.1]
+        at org.springframework.data.jpa.repository.support.JpaEntityInformationSupport.getEntityInformation(JpaEntityInformationSupport.java:73) ~[spring-data-jpa-4.0.1.jar:4.0.1]
+        at org.springframework.data.jpa.repository.support.JpaRepositoryFactory.getEntityInformation(JpaRepositoryFactory.java:270) ~[spring-data-jpa-4.0.1.jar:4.0.1]
+        at org.springframework.data.jpa.repository.support.JpaRepositoryFactory.getRepositoryFragments(JpaRepositoryFactory.java:300) ~[spring-data-jpa-4.0.1.jar:4.0.1]
+        at org.springframework.data.jpa.repository.support.JpaRepositoryFactory.getRepositoryFragments(JpaRepositoryFactory.java:280) ~[spring-data-jpa-4.0.1.jar:4.0.1]
+        at org.springframework.data.repository.core.support.RepositoryFactorySupport.lambda$getRepositoryStub$0(RepositoryFactorySupport.java:497) ~[spring-data-commons-4.0.1.jar:4.0.1]
+        at java.base/java.util.HashMap.computeIfAbsent(HashMap.java:1229) ~[na:na]
+        at org.springframework.data.repository.core.support.RepositoryFactorySupport.getRepositoryStub(RepositoryFactorySupport.java:494) ~[spring-data-commons-4.0.1.jar:4.0.1]
+        at org.springframework.data.repository.core.support.RepositoryFactorySupport.getRepository(RepositoryFactorySupport.java:334) ~[spring-data-commons-4.0.1.jar:4.0.1]
+        at org.springframework.data.repository.core.support.RepositoryFactoryBeanSupport.lambda$afterPropertiesSet$1(RepositoryFactoryBeanSupport.java:361) ~[spring-data-commons-4.0.1.jar:4.0.1]
+        at org.springframework.data.util.Lazy.getNullable(Lazy.java:136) ~[spring-data-commons-4.0.1.jar:4.0.1]
+        at org.springframework.data.util.Lazy.get(Lazy.java:114) ~[spring-data-commons-4.0.1.jar:4.0.1]
+        at org.springframework.data.repository.core.support.RepositoryFactoryBeanSupport.afterPropertiesSet(RepositoryFactoryBeanSupport.java:370) ~[spring-data-commons-4.0.1.jar:4.0.1]
+        at org.springframework.data.jpa.repository.support.JpaRepositoryFactoryBean.afterPropertiesSet(JpaRepositoryFactoryBean.java:212) ~[spring-data-jpa-4.0.1.jar:4.0.1]
+        at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.invokeInitMethods(AbstractAutowireCapableBeanFactory.java:1864) ~[spring-beans-7.0.2.jar:7.0.2]
+        at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.initializeBean(AbstractAutowireCapableBeanFactory.java:1813) ~[spring-beans-7.0.2.jar:7.0.2]
+        ... 63 common frames omitted
+
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  51.027 s
+[INFO] Finished at: 2026-03-04T18:54:26+01:00
