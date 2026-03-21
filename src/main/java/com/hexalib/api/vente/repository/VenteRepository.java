@@ -81,4 +81,20 @@ BigDecimal sumMontantByVendeurBetween(
     @Param("debut") LocalDateTime debut,
     @Param("fin") LocalDateTime fin
 );
+
+// Ajouter ces deux méthodes dans VenteRepository.java
+
+@Query("SELECT COALESCE(SUM(v.montantTTC), 0) FROM Vente v WHERE v.statut = 'VALIDEE' " +
+       "AND v.dateVente BETWEEN :debut AND :fin")
+BigDecimal sumMontantByPeriode(
+    @Param("debut") LocalDateTime debut,
+    @Param("fin") LocalDateTime fin
+);
+
+@Query("SELECT COUNT(v) FROM Vente v WHERE v.statut = 'VALIDEE' " +
+       "AND v.dateVente BETWEEN :debut AND :fin")
+long countByPeriode(
+    @Param("debut") LocalDateTime debut,
+    @Param("fin") LocalDateTime fin
+);
 }
