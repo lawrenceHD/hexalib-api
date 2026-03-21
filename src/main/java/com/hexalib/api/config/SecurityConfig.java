@@ -12,12 +12,12 @@ import org.springframework.security.authentication.dao.DaoAuthenticationProvider
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.config.annotation.web.configurers.HeadersConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -30,12 +30,13 @@ import java.util.List;
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-    private final UserDetailsServiceImpl userDetailsService;
-    private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final UserDetailsServiceImpl   userDetailsService;
+    private final JwtAuthenticationFilter  jwtAuthenticationFilter;
 
     @Bean
     public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
+        // Cost factor 12 — conforme au cahier des charges
+        return new BCryptPasswordEncoder(12);
     }
 
     @Bean
@@ -58,6 +59,7 @@ public class SecurityConfig {
         config.setAllowedHeaders(List.of("*"));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         config.setExposedHeaders(List.of("Authorization"));
+        config.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
@@ -67,28 +69,54 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-                .cors(cors -> {})
-                .csrf(csrf -> csrf.disable())
-               .headers(headers -> headers
-            .frameOptions(frame -> frame.sameOrigin())   // ← ou .disable() si tu veux tout autoriser
-        )
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/**").permitAll()
-                        .requestMatchers(
-                                "/swagger-ui/**",
-                                "/v3/api-docs/**",
-                                "/swagger-ui.html",
-                                "/swagger-resources/**",
-                                "/webjars/**"
-                        ).permitAll()
-                        .requestMatchers("/actuator/**").permitAll()
-                        .requestMatchers("/", "/index.html", "/favicon.ico").permitAll()
-                        .anyRequest().authenticated()
-                        
-                )
-                .authenticationProvider(authenticationProvider())
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+            // ── CORS ──────────────────────────────────────────────────────────
+            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+
+            // ── CSRF désactivé (API stateless JWT) ────────────────────────────
+            .csrf(csrf -> csrf.disable())
+
+            // ── Headers de sécurité (XSS, Clickjacking) ──────────────────────
+            .headers(headers -> headers
+                .frameOptions(frame -> frame.sameOrigin())
+                .xssProtection(xss -> xss.disable()) // Géré par Content-Security-Policy
+                .contentSecurityPolicy(csp -> csp.policyDirectives(
+                    "default-src 'self'; " +
+                    "script-src 'self'; " +
+                    "style-src 'self' 'unsafe-inline'; " +
+                    "img-src 'self' data:; " +
+                    "font-src 'self';"
+                ))
+                .referrerPolicy(ref -> ref.policy(
+                    ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN
+                ))
+            )
+
+            // ── Session stateless (JWT) ───────────────────────────────────────
+            .sessionManagement(session ->
+                session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+
+            // ── Endpoints publics ────────────────────────────────────────────
+            .authorizeHttpRequests(auth -> auth
+                .requestMatchers(
+                    "/api/auth/login",
+                    "/api/auth/register",
+                    "/api/auth/refresh-token"
+                ).permitAll()
+                .requestMatchers(
+                    "/swagger-ui/**",
+                    "/v3/api-docs/**",
+                    "/swagger-ui.html",
+                    "/swagger-resources/**",
+                    "/webjars/**"
+                ).permitAll()
+                .requestMatchers("/actuator/health").permitAll()
+                .requestMatchers("/", "/index.html", "/favicon.ico").permitAll()
+                .anyRequest().authenticated()
+            )
+
+            // ── Provider + Filtre JWT ─────────────────────────────────────────
+            .authenticationProvider(authenticationProvider())
+            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }

@@ -1,5 +1,6 @@
 package com.hexalib.api.rapport.controller;
 
+import com.hexalib.api.auth.model.User;
 import com.hexalib.api.common.dto.ApiResponse;
 import com.hexalib.api.rapport.dto.DashboardAdminDTO;
 import com.hexalib.api.rapport.dto.DashboardVendeurDTO;
@@ -18,7 +19,6 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
@@ -30,224 +30,145 @@ import java.time.LocalDate;
 @SecurityRequirement(name = "bearerAuth")
 public class RapportController {
 
-    private final RapportService rapportService;
+    private final RapportService    rapportService;
     private final RapportPdfService rapportPdfService;
 
     // ==================== DASHBOARDS ====================
 
-    /**
-     * Dashboard Admin
-     */
     @GetMapping("/dashboard/admin")
     @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Dashboard Admin", description = "Récupérer le tableau de bord administrateur avec KPIs et graphiques")
+    @Operation(summary = "Dashboard Admin")
     public ResponseEntity<ApiResponse<DashboardAdminDTO>> getDashboardAdmin() {
-        DashboardAdminDTO dashboard = rapportService.getDashboardAdmin();
-        return ResponseEntity.ok(ApiResponse.success(dashboard));
+        return ResponseEntity.ok(ApiResponse.success(rapportService.getDashboardAdmin()));
     }
 
-    /**
-     * Dashboard Vendeur
-     */
     @GetMapping("/dashboard/vendeur")
-    @Operation(summary = "Dashboard Vendeur", description = "Récupérer le tableau de bord du vendeur connecté")
-    public ResponseEntity<ApiResponse<DashboardVendeurDTO>> getDashboardVendeur() {
-        // Récupérer l'ID du vendeur connecté
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        String vendeurId = getUserIdFromAuthentication(authentication);
-        
-        DashboardVendeurDTO dashboard = rapportService.getDashboardVendeur(vendeurId);
-        return ResponseEntity.ok(ApiResponse.success(dashboard));
+    @PreAuthorize("hasAnyRole('ADMIN', 'VENDEUR')")
+    @Operation(summary = "Dashboard Vendeur")
+    public ResponseEntity<ApiResponse<DashboardVendeurDTO>> getDashboardVendeur(
+            Authentication authentication) {
+        String vendeurId = getVendeurId(authentication);
+        return ResponseEntity.ok(ApiResponse.success(rapportService.getDashboardVendeur(vendeurId)));
     }
 
     // ==================== RAPPORT JOURNALIER ====================
 
-    /**
-     * Rapport de clôture journalière (JSON)
-     */
     @GetMapping("/cloture-journaliere")
     @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Rapport journalier JSON", description = "Récupérer le rapport de clôture journalière au format JSON")
     public ResponseEntity<ApiResponse<RapportJournalierDTO>> getRapportJournalier(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
-        
-        LocalDate targetDate = date != null ? date : LocalDate.now();
-        RapportJournalierDTO rapport = rapportService.getRapportJournalier(targetDate);
-        
-        return ResponseEntity.ok(ApiResponse.success(rapport));
+        LocalDate d = date != null ? date : LocalDate.now();
+        return ResponseEntity.ok(ApiResponse.success(rapportService.getRapportJournalier(d)));
     }
 
-    /**
-     * Rapport de clôture journalière (PDF)
-     */
     @GetMapping("/cloture-journaliere/pdf")
     @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Rapport journalier PDF", description = "Télécharger le rapport de clôture journalière au format PDF")
     public ResponseEntity<byte[]> downloadRapportJournalierPDF(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
-        
-        LocalDate targetDate = date != null ? date : LocalDate.now();
-        RapportJournalierDTO rapport = rapportService.getRapportJournalier(targetDate);
-        byte[] pdfBytes = rapportPdfService.genererRapportJournalierPDF(rapport);
-        
-        String filename = "Rapport_Journalier_" + targetDate.toString() + ".pdf";
-        
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_PDF);
-        headers.setContentDispositionFormData("attachment", filename);
-        headers.setCacheControl("must-revalidate, post-check=0, pre-check=0");
-        
-        return new ResponseEntity<>(pdfBytes, headers, HttpStatus.OK);
+        LocalDate d = date != null ? date : LocalDate.now();
+        return createPdfResponse(
+            rapportPdfService.genererRapportJournalierPDF(rapportService.getRapportJournalier(d)),
+            "Rapport_Journalier_" + d + ".pdf");
     }
 
     // ==================== RAPPORTS PÉRIODIQUES ====================
 
-    /**
-     * Rapport hebdomadaire (JSON)
-     */
     @GetMapping("/hebdomadaire")
     @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Rapport hebdomadaire JSON", description = "Récupérer le rapport hebdomadaire (7 derniers jours)")
     public ResponseEntity<ApiResponse<RapportPeriodiqueDTO>> getRapportHebdomadaire(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateFin) {
-        
-        LocalDate targetDate = dateFin != null ? dateFin : LocalDate.now();
-        RapportPeriodiqueDTO rapport = rapportService.getRapportHebdomadaire(targetDate);
-        
-        return ResponseEntity.ok(ApiResponse.success(rapport));
+        LocalDate d = dateFin != null ? dateFin : LocalDate.now();
+        return ResponseEntity.ok(ApiResponse.success(rapportService.getRapportHebdomadaire(d)));
     }
 
-    /**
-     * Rapport hebdomadaire (PDF)
-     */
     @GetMapping("/hebdomadaire/pdf")
     @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Rapport hebdomadaire PDF", description = "Télécharger le rapport hebdomadaire au format PDF")
     public ResponseEntity<byte[]> downloadRapportHebdomadairePDF(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateFin) {
-        
-        LocalDate targetDate = dateFin != null ? dateFin : LocalDate.now();
-        RapportPeriodiqueDTO rapport = rapportService.getRapportHebdomadaire(targetDate);
-        byte[] pdfBytes = rapportPdfService.genererRapportPeriodiquePDF(rapport);
-        
-        String filename = "Rapport_Hebdomadaire_" + targetDate.toString() + ".pdf";
-        
-        return createPdfResponse(pdfBytes, filename);
+        LocalDate d = dateFin != null ? dateFin : LocalDate.now();
+        return createPdfResponse(
+            rapportPdfService.genererRapportPeriodiquePDF(rapportService.getRapportHebdomadaire(d)),
+            "Rapport_Hebdomadaire_" + d + ".pdf");
     }
 
-    /**
-     * Rapport mensuel (JSON)
-     */
     @GetMapping("/mensuel")
     @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Rapport mensuel JSON", description = "Récupérer le rapport mensuel")
     public ResponseEntity<ApiResponse<RapportPeriodiqueDTO>> getRapportMensuel(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
-        
-        LocalDate targetDate = date != null ? date : LocalDate.now();
-        RapportPeriodiqueDTO rapport = rapportService.getRapportMensuel(targetDate);
-        
-        return ResponseEntity.ok(ApiResponse.success(rapport));
+        LocalDate d = date != null ? date : LocalDate.now();
+        return ResponseEntity.ok(ApiResponse.success(rapportService.getRapportMensuel(d)));
     }
 
-    /**
-     * Rapport mensuel (PDF)
-     */
     @GetMapping("/mensuel/pdf")
     @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Rapport mensuel PDF", description = "Télécharger le rapport mensuel au format PDF")
     public ResponseEntity<byte[]> downloadRapportMensuelPDF(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
-        
-        LocalDate targetDate = date != null ? date : LocalDate.now();
-        RapportPeriodiqueDTO rapport = rapportService.getRapportMensuel(targetDate);
-        byte[] pdfBytes = rapportPdfService.genererRapportPeriodiquePDF(rapport);
-        
-        String filename = "Rapport_Mensuel_" + targetDate.getYear() + "_" + 
-                         String.format("%02d", targetDate.getMonthValue()) + ".pdf";
-        
-        return createPdfResponse(pdfBytes, filename);
+        LocalDate d = date != null ? date : LocalDate.now();
+        String filename = "Rapport_Mensuel_" + d.getYear() + "_"
+                + String.format("%02d", d.getMonthValue()) + ".pdf";
+        return createPdfResponse(
+            rapportPdfService.genererRapportPeriodiquePDF(rapportService.getRapportMensuel(d)), filename);
     }
 
-    /**
-     * Rapport annuel (JSON)
-     */
     @GetMapping("/annuel")
     @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Rapport annuel JSON", description = "Récupérer le rapport annuel")
     public ResponseEntity<ApiResponse<RapportPeriodiqueDTO>> getRapportAnnuel(
             @RequestParam(required = false) Integer annee) {
-        
-        int targetYear = annee != null ? annee : LocalDate.now().getYear();
-        RapportPeriodiqueDTO rapport = rapportService.getRapportAnnuel(targetYear);
-        
-        return ResponseEntity.ok(ApiResponse.success(rapport));
+        int y = annee != null ? annee : LocalDate.now().getYear();
+        return ResponseEntity.ok(ApiResponse.success(rapportService.getRapportAnnuel(y)));
     }
 
-    /**
-     * Rapport annuel (PDF)
-     */
     @GetMapping("/annuel/pdf")
     @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Rapport annuel PDF", description = "Télécharger le rapport annuel au format PDF")
     public ResponseEntity<byte[]> downloadRapportAnnuelPDF(
             @RequestParam(required = false) Integer annee) {
-        
-        int targetYear = annee != null ? annee : LocalDate.now().getYear();
-        RapportPeriodiqueDTO rapport = rapportService.getRapportAnnuel(targetYear);
-        byte[] pdfBytes = rapportPdfService.genererRapportPeriodiquePDF(rapport);
-        
-        String filename = "Rapport_Annuel_" + targetYear + ".pdf";
-        
-        return createPdfResponse(pdfBytes, filename);
+        int y = annee != null ? annee : LocalDate.now().getYear();
+        return createPdfResponse(
+            rapportPdfService.genererRapportPeriodiquePDF(rapportService.getRapportAnnuel(y)),
+            "Rapport_Annuel_" + y + ".pdf");
     }
 
-    /**
-     * Rapport personnalisé (JSON)
-     */
     @GetMapping("/personnalise")
     @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Rapport personnalisé JSON", description = "Récupérer un rapport pour une période personnalisée")
     public ResponseEntity<ApiResponse<RapportPeriodiqueDTO>> getRapportPersonnalise(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateDebut,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateFin) {
-        
-        RapportPeriodiqueDTO rapport = rapportService.getRapportPersonnalise(dateDebut, dateFin);
-        return ResponseEntity.ok(ApiResponse.success(rapport));
+        return ResponseEntity.ok(ApiResponse.success(rapportService.getRapportPersonnalise(dateDebut, dateFin)));
     }
 
-    /**
-     * Rapport personnalisé (PDF)
-     */
     @GetMapping("/personnalise/pdf")
     @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Rapport personnalisé PDF", description = "Télécharger un rapport personnalisé au format PDF")
     public ResponseEntity<byte[]> downloadRapportPersonnalisePDF(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateDebut,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateFin) {
-        
-        RapportPeriodiqueDTO rapport = rapportService.getRapportPersonnalise(dateDebut, dateFin);
-        byte[] pdfBytes = rapportPdfService.genererRapportPeriodiquePDF(rapport);
-        
-        String filename = "Rapport_" + dateDebut + "_" + dateFin + ".pdf";
-        
-        return createPdfResponse(pdfBytes, filename);
+        return createPdfResponse(
+            rapportPdfService.genererRapportPeriodiquePDF(rapportService.getRapportPersonnalise(dateDebut, dateFin)),
+            "Rapport_" + dateDebut + "_" + dateFin + ".pdf");
     }
 
-    // ==================== MÉTHODES UTILITAIRES ====================
+    // ==================== UTILITAIRES ====================
 
-    private ResponseEntity<byte[]> createPdfResponse(byte[] pdfBytes, String filename) {
+    private ResponseEntity<byte[]> createPdfResponse(byte[] pdf, String filename) {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_PDF);
         headers.setContentDispositionFormData("attachment", filename);
         headers.setCacheControl("must-revalidate, post-check=0, pre-check=0");
-        
-        return new ResponseEntity<>(pdfBytes, headers, HttpStatus.OK);
+        return new ResponseEntity<>(pdf, headers, HttpStatus.OK);
     }
 
-    private String getUserIdFromAuthentication(Authentication authentication) {
-        // TODO: Adapter selon votre implémentation de récupération de l'ID utilisateur
-        // Pour l'instant, retourner un ID fictif
-        return "user-id-from-auth";
+    /**
+     * Récupère l'UUID du vendeur connecté.
+     * Le principal est directement l'entité User (via UserDetailsServiceImpl
+     * qui retourne userRepository.findByEmail(...))
+     */
+    private String getVendeurId(Authentication authentication) {
+        if (authentication == null || !authentication.isAuthenticated()) {
+            throw new IllegalStateException("Utilisateur non authentifié");
+        }
+        // Le principal EST l'entité User grâce à UserDetailsServiceImpl
+        if (authentication.getPrincipal() instanceof User user) {
+            return user.getId();
+        }
+        throw new IllegalStateException("Principal inattendu : " + authentication.getPrincipal().getClass());
     }
 }

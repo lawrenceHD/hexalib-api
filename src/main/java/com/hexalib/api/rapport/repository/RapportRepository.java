@@ -57,6 +57,86 @@ public class RapportRepository {
         return result != null ? ((Number) result).longValue() : 0L;
     }
 
+    // ==================== STATISTIQUES PAR VENDEUR ====================
+
+    /**
+     * Stats d'un vendeur spécifique sur une période
+     */
+    public long countVentesByVendeur(String vendeurId, LocalDateTime debut, LocalDateTime fin) {
+        return (long) em.createQuery(
+                "SELECT COUNT(v) FROM Vente v WHERE v.statut = 'VALIDEE' " +
+                "AND v.vendeur.id = :vendeurId " +
+                "AND v.dateVente BETWEEN :debut AND :fin")
+                .setParameter("vendeurId", vendeurId)
+                .setParameter("debut", debut)
+                .setParameter("fin", fin)
+                .getSingleResult();
+    }
+
+    public BigDecimal sumCAByVendeur(String vendeurId, LocalDateTime debut, LocalDateTime fin) {
+        BigDecimal result = (BigDecimal) em.createQuery(
+                "SELECT COALESCE(SUM(v.montantTTC), 0) FROM Vente v WHERE v.statut = 'VALIDEE' " +
+                "AND v.vendeur.id = :vendeurId " +
+                "AND v.dateVente BETWEEN :debut AND :fin")
+                .setParameter("vendeurId", vendeurId)
+                .setParameter("debut", debut)
+                .setParameter("fin", fin)
+                .getSingleResult();
+        return result != null ? result : BigDecimal.ZERO;
+    }
+
+    public BigDecimal sumReductionsByVendeur(String vendeurId, LocalDateTime debut, LocalDateTime fin) {
+        BigDecimal result = (BigDecimal) em.createQuery(
+                "SELECT COALESCE(SUM(v.montantReductions), 0) FROM Vente v WHERE v.statut = 'VALIDEE' " +
+                "AND v.vendeur.id = :vendeurId " +
+                "AND v.dateVente BETWEEN :debut AND :fin")
+                .setParameter("vendeurId", vendeurId)
+                .setParameter("debut", debut)
+                .setParameter("fin", fin)
+                .getSingleResult();
+        return result != null ? result : BigDecimal.ZERO;
+    }
+
+    public long sumQuantiteLivresVendusByVendeur(String vendeurId, LocalDateTime debut, LocalDateTime fin) {
+        Object result = em.createQuery(
+                "SELECT COALESCE(SUM(lv.quantite), 0) FROM LigneVente lv " +
+                "JOIN lv.vente v WHERE v.statut = 'VALIDEE' " +
+                "AND v.vendeur.id = :vendeurId " +
+                "AND v.dateVente BETWEEN :debut AND :fin")
+                .setParameter("vendeurId", vendeurId)
+                .setParameter("debut", debut)
+                .setParameter("fin", fin)
+                .getSingleResult();
+        return result != null ? ((Number) result).longValue() : 0L;
+    }
+
+    /**
+     * Top livres vendus par un vendeur spécifique
+     */
+    @SuppressWarnings("unchecked")
+    public List<TopLivreDTO> getTopLivresByVendeur(String vendeurId, LocalDateTime debut, LocalDateTime fin) {
+        return em.createQuery(
+                "SELECT new com.hexalib.api.rapport.dto.TopLivreDTO(" +
+                "l.id, l.code, l.titre, l.auteur, c.nom, " +
+                "SUM(lv.quantite), " +
+                "SUM(lv.sousTotal), " +
+                "COUNT(DISTINCT v.id), " +
+                "0) " +
+                "FROM LigneVente lv " +
+                "JOIN lv.livre l " +
+                "JOIN l.categorie c " +
+                "JOIN lv.vente v " +
+                "WHERE v.statut = 'VALIDEE' " +
+                "AND v.vendeur.id = :vendeurId " +
+                "AND v.dateVente BETWEEN :debut AND :fin " +
+                "GROUP BY l.id, l.code, l.titre, l.auteur, c.nom " +
+                "ORDER BY SUM(lv.quantite) DESC")
+                .setParameter("vendeurId", vendeurId)
+                .setParameter("debut", debut)
+                .setParameter("fin", fin)
+                .getResultList();
+    }
+
     // ==================== ÉVOLUTION CA ====================
 
     @SuppressWarnings("unchecked")
@@ -127,13 +207,15 @@ public class RapportRepository {
 
     @SuppressWarnings("unchecked")
     public List<PerformanceVendeurDTO> getPerformanceVendeurs(LocalDateTime debut, LocalDateTime fin) {
+        // Note: AVG() retourne Double — on passe 0 et calcule le panier moyen côté service
+        // (panierMoyen = caTTC / nombreVentes)
         return em.createQuery(
                 "SELECT new com.hexalib.api.rapport.dto.PerformanceVendeurDTO(" +
                 "u.id, u.nomComplet, " +
                 "COUNT(v.id), " +
                 "COALESCE(SUM(v.montantTTC), 0), " +
                 "COALESCE(SUM(lv.quantite), 0), " +
-                "COALESCE(AVG(v.montantTTC), 0), " +
+                "COALESCE(SUM(v.montantTTC), 0), " +
                 "0) " +
                 "FROM Vente v " +
                 "JOIN v.vendeur u " +
@@ -185,26 +267,29 @@ public class RapportRepository {
     }
 
     public BigDecimal getReductionMoyenne(LocalDateTime debut, LocalDateTime fin) {
-        BigDecimal result = (BigDecimal) em.createQuery(
-                "SELECT COALESCE(AVG(v.montantReductions), 0) FROM Vente v " +
-                "WHERE v.statut = 'VALIDEE' " +
-                "AND v.montantReductions > 0 " +
+        // AVG() retourne Double en JPQL/MySQL — ne pas caster en BigDecimal directement
+        Object result = em.createQuery(
+                "SELECT AVG(v.montantReductions) FROM Vente v " +
+                "WHERE v.statut = 'VALIDEE' AND v.montantReductions > 0 " +
                 "AND v.dateVente BETWEEN :debut AND :fin")
                 .setParameter("debut", debut)
                 .setParameter("fin", fin)
                 .getSingleResult();
-        return result != null ? result : BigDecimal.ZERO;
+        if (result == null) return BigDecimal.ZERO;
+        return new BigDecimal(result.toString());
     }
 
     public BigDecimal getReductionMaximale(LocalDateTime debut, LocalDateTime fin) {
-        BigDecimal result = (BigDecimal) em.createQuery(
-                "SELECT COALESCE(MAX(v.montantReductions), 0) FROM Vente v " +
+        // MAX() sur DECIMAL — retirer COALESCE(..., 0) qui peut forcer un type entier
+        Object result = em.createQuery(
+                "SELECT MAX(v.montantReductions) FROM Vente v " +
                 "WHERE v.statut = 'VALIDEE' " +
                 "AND v.dateVente BETWEEN :debut AND :fin")
                 .setParameter("debut", debut)
                 .setParameter("fin", fin)
                 .getSingleResult();
-        return result != null ? result : BigDecimal.ZERO;
+        if (result == null) return BigDecimal.ZERO;
+        return new BigDecimal(result.toString());
     }
 
     // ==================== ROTATION STOCK ====================
