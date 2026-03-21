@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 
@@ -87,6 +88,8 @@ public interface LivreRepository extends JpaRepository<Livre, String> {
      * Compter les livres par catégorie
      */
     long countByCategorieId(String categorieId);
+
+    boolean existsByTitreAndAuteurAndPrixVente(String titre, String auteur, BigDecimal prixVente);
     
     /**
      * Lister toutes les langues disponibles (distinct)

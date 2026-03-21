@@ -1,7 +1,16 @@
 package com.hexalib.api.livre.controller;
 
+import com.hexalib.api.auth.repository.UserRepository;
+ import com.hexalib.api.livre.dto.ImportResultResponse;
+ import com.hexalib.api.livre.service.LivreExportService;
+ import com.hexalib.api.livre.service.LivreImportService;
+ import org.springframework.http.MediaType;
+ import org.springframework.web.multipart.MultipartFile;
+ import org.springframework.http.HttpHeaders;
+
 import com.hexalib.api.common.dto.ApiResponse;
 import com.hexalib.api.common.dto.PageResponse;
+import com.hexalib.api.livre.dto.ImportResultResponse;
 import com.hexalib.api.livre.dto.LivreRequest;
 import com.hexalib.api.livre.dto.LivreResponse;
 import com.hexalib.api.livre.service.LivreService;
@@ -14,6 +23,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -25,6 +35,8 @@ import java.util.List;
 public class LivreController {
 
     private final LivreService livreService;
+    private final LivreImportService livreImportService;
+private final LivreExportService livreExportService;
 
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
@@ -116,4 +128,32 @@ public class LivreController {
         LivreResponse livre = livreService.ajusterStock(id, quantite, motif);
         return ResponseEntity.ok(ApiResponse.success("Stock ajusté avec succès", livre));
     }
+
+    @PostMapping("/import")
+@PreAuthorize("hasRole('ADMIN')")
+@Operation(summary = "Importer des livres", description = "Importer une liste de livres depuis un fichier Excel (Admin uniquement)")
+public ResponseEntity<ApiResponse<ImportResultResponse>> importLivres(
+        @RequestParam("file") MultipartFile file,
+        @RequestParam("categorieId") String categorieId) {
+ 
+    ImportResultResponse result = livreImportService.importLivres(file, categorieId);
+    return ResponseEntity.ok(ApiResponse.success("Import terminé", result));
+}
+ 
+@GetMapping("/export")
+@PreAuthorize("hasRole('ADMIN')")
+@Operation(summary = "Exporter l'inventaire", description = "Exporter tous les livres au format Excel (Admin uniquement)")
+public ResponseEntity<byte[]> exportLivres() {
+    byte[] excelBytes = livreExportService.exportLivres();
+ 
+    String filename = "Inventaire_Hexalib_" +
+            java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd")) + ".xlsx";
+ 
+    HttpHeaders headers = new HttpHeaders();
+    headers.setContentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
+    headers.setContentDispositionFormData("attachment", filename);
+    headers.setCacheControl("must-revalidate, post-check=0, pre-check=0");
+ 
+    return new ResponseEntity<>(excelBytes, headers, HttpStatus.OK);
+}
 }
