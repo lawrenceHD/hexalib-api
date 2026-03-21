@@ -19,4 +19,7 @@ public class LigneVenteRequest {
     @NotNull(message = "La quantité est obligatoire")
     @Min(value = 1, message = "La quantité doit être au moins 1")
     private Integer quantite;
+
+    // Réduction choisie manuellement par le vendeur (optionnel)
+    private UUID reductionId;
 }

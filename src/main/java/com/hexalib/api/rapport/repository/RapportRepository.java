@@ -206,28 +206,24 @@ public class RapportRepository {
     // ==================== PERFORMANCE VENDEURS ====================
 
     @SuppressWarnings("unchecked")
-    public List<PerformanceVendeurDTO> getPerformanceVendeurs(LocalDateTime debut, LocalDateTime fin) {
-        // Note: AVG() retourne Double — on passe 0 et calcule le panier moyen côté service
-        // (panierMoyen = caTTC / nombreVentes)
-        return em.createQuery(
-                "SELECT new com.hexalib.api.rapport.dto.PerformanceVendeurDTO(" +
-                "u.id, u.nomComplet, " +
-                "COUNT(v.id), " +
-                "COALESCE(SUM(v.montantTTC), 0), " +
-                "COALESCE(SUM(lv.quantite), 0), " +
-                "COALESCE(SUM(v.montantTTC), 0), " +
-                "0) " +
-                "FROM Vente v " +
-                "JOIN v.vendeur u " +
-                "LEFT JOIN v.lignes lv " +
-                "WHERE v.statut = 'VALIDEE' " +
-                "AND v.dateVente BETWEEN :debut AND :fin " +
-                "GROUP BY u.id, u.nomComplet " +
-                "ORDER BY SUM(v.montantTTC) DESC")
-                .setParameter("debut", debut)
-                .setParameter("fin", fin)
-                .getResultList();
-    }
+public List<PerformanceVendeurDTO> getPerformanceVendeurs(LocalDateTime debut, LocalDateTime fin) {
+    return em.createQuery(
+            "SELECT new com.hexalib.api.rapport.dto.PerformanceVendeurDTO(" +
+            "u.id, u.nomComplet, " +
+            "COUNT(v.id), " +
+            "SUM(v.montantTTC), " +
+            "SUM(lv.quantite)) " +
+            "FROM Vente v " +
+            "JOIN v.vendeur u " +
+            "LEFT JOIN v.lignes lv " +
+            "WHERE v.statut = 'VALIDEE' " +
+            "AND v.dateVente BETWEEN :debut AND :fin " +
+            "GROUP BY u.id, u.nomComplet " +
+            "ORDER BY SUM(v.montantTTC) DESC")
+            .setParameter("debut", debut)
+            .setParameter("fin", fin)
+            .getResultList();
+}
 
     // ==================== STOCK CRITIQUE ====================
 

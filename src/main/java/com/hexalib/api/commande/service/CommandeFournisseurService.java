@@ -1,5 +1,14 @@
 package com.hexalib.api.commande.service;
 
+import com.hexalib.api.stock.model.MouvementStock;
+import com.hexalib.api.stock.model.TypeMouvement;
+ import com.hexalib.api.stock.repository.MouvementStockRepository;
+import com.hexalib.api.auth.repository.UserRepository;
+ import org.springframework.security.core.Authentication;
+ import org.springframework.security.core.context.SecurityContextHolder;
+import java.time.LocalDateTime;
+
+
 import com.hexalib.api.auth.model.User;
 import com.hexalib.api.auth.repository.UserRepository;
 import com.hexalib.api.commande.dto.CommandeFournisseurRequest;
@@ -16,6 +25,9 @@ import com.hexalib.api.fournisseur.model.Fournisseur;
 import com.hexalib.api.fournisseur.repository.FournisseurRepository;
 import com.hexalib.api.livre.model.Livre;
 import com.hexalib.api.livre.repository.LivreRepository;
+import com.hexalib.api.stock.model.MouvementStock;
+import com.hexalib.api.stock.model.TypeMouvement;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -27,6 +39,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -40,6 +53,8 @@ public class CommandeFournisseurService {
     private final FournisseurRepository fournisseurRepository;
     private final LivreRepository livreRepository;
     private final UserRepository userRepository;
+    private final MouvementStockRepository mouvementStockRepository;
+
 
     @Transactional
     public CommandeFournisseurResponse createCommande(CommandeFournisseurRequest request) {
@@ -203,38 +218,55 @@ public class CommandeFournisseurService {
     }
 
     @Transactional
-    public CommandeFournisseurResponse recevoirCommande(String id, LocalDate dateReception) {
-        CommandeFournisseur commande = commandeRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Commande", "id", id));
-
-        // Vérifier que la commande est en attente
-        if (commande.getStatut() != CommandeFournisseur.Statut.EN_ATTENTE) {
-            throw new BadRequestException("Cette commande a déjà été traitée");
-        }
-
-        // Marquer comme reçue
-        commande.marquerCommeRecue(dateReception);
-
-        // Mettre à jour le stock de chaque livre
-        for (LigneCommandeFournisseur ligne : commande.getLignes()) {
-            Livre livre = ligne.getLivre();
-            int nouvelleQuantite = livre.getQuantiteStock() + ligne.getQuantite();
-            livre.setQuantiteStock(nouvelleQuantite);
-            
-            // Mettre à jour le prix d'achat du livre si fourni
-            if (ligne.getPrixAchatUnitaire() != null) {
-                livre.setPrixAchat(ligne.getPrixAchatUnitaire());
-            }
-            
-            livreRepository.save(livre);
-
-            // TODO: Créer un mouvement de stock "ENTREE"
-        }
-
-        CommandeFournisseur updatedCommande = commandeRepository.save(commande);
-        return CommandeFournisseurResponse.fromEntity(updatedCommande);
+public CommandeFournisseurResponse recevoirCommande(String id, LocalDate dateReception) {
+    CommandeFournisseur commande = commandeRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Commande", "id", id));
+ 
+    // Vérifier que la commande est en attente
+    if (commande.getStatut() != CommandeFournisseur.Statut.EN_ATTENTE) {
+        throw new BadRequestException("Cette commande a déjà été traitée");
     }
-
+ 
+    // Marquer comme reçue
+    commande.marquerCommeRecue(dateReception);
+ 
+    // Récupérer l'utilisateur connecté (pour les mouvements de stock)
+    User currentUser = getCurrentUser();
+ 
+    // Mettre à jour le stock de chaque livre + enregistrer les mouvements
+    for (LigneCommandeFournisseur ligne : commande.getLignes()) {
+        Livre livre = ligne.getLivre();
+        int stockAvant = livre.getQuantiteStock();
+        int stockApres = stockAvant + ligne.getQuantite();
+ 
+        // Mettre à jour le stock
+        livre.setQuantiteStock(stockApres);
+ 
+        // Mettre à jour le prix d'achat si fourni
+        if (ligne.getPrixAchatUnitaire() != null) {
+            livre.setPrixAchat(ligne.getPrixAchatUnitaire());
+        }
+ 
+        livreRepository.save(livre);
+ 
+        // Enregistrer le mouvement de stock ENTREE
+        MouvementStock mouvement = new MouvementStock();
+        mouvement.setLivre(livre);
+        mouvement.setTypeMouvement(TypeMouvement.ENTREE);
+        mouvement.setQuantite(ligne.getQuantite()); // Positif = entrée
+        mouvement.setStockAvant(stockAvant);
+        mouvement.setStockApres(stockApres);
+        mouvement.setMotif("Réception commande fournisseur");
+        mouvement.setReference(commande.getNumeroCommande());
+        mouvement.setUser(currentUser);
+        mouvement.setDateMouvement(LocalDateTime.now());
+ 
+        mouvementStockRepository.save(mouvement);
+    }
+ 
+    CommandeFournisseur updatedCommande = commandeRepository.save(commande);
+    return CommandeFournisseurResponse.fromEntity(updatedCommande);
+}
     @Transactional
     public CommandeFournisseurResponse annulerCommande(String id, String motif) {
         CommandeFournisseur commande = commandeRepository.findById(id)

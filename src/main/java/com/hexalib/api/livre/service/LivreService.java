@@ -9,14 +9,24 @@ import com.hexalib.api.livre.dto.LivreRequest;
 import com.hexalib.api.livre.dto.LivreResponse;
 import com.hexalib.api.livre.model.Livre;
 import com.hexalib.api.livre.repository.LivreRepository;
+import com.hexalib.api.stock.model.MouvementStock;
+import com.hexalib.api.stock.model.TypeMouvement;
+import com.hexalib.api.stock.repository.MouvementStockRepository;
+import com.hexalib.api.auth.model.User;
+import com.hexalib.api.auth.repository.UserRepository;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -26,6 +36,8 @@ public class LivreService {
 
     private final LivreRepository livreRepository;
     private final CategorieRepository categorieRepository;
+    private final MouvementStockRepository mouvementStockRepository;
+private final UserRepository userRepository;
 
     @Transactional
     public LivreResponse createLivre(LivreRequest request) {
@@ -218,21 +230,56 @@ public class LivreService {
     }
 
     @Transactional
-    public LivreResponse ajusterStock(String id, Integer quantite, String motif) {
-        Livre livre = livreRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Livre", "id", id));
-
-        if (quantite < 0) {
-            throw new BadRequestException("La quantité ne peut pas être négative");
-        }
-
-        livre.setQuantiteStock(quantite);
-        
-        // TODO: Créer un mouvement de stock avec le motif
-        
-        Livre updatedLivre = livreRepository.save(livre);
-        return LivreResponse.fromEntity(updatedLivre);
+public LivreResponse ajusterStock(String id, Integer quantite, String motif) {
+    Livre livre = livreRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Livre", "id", id));
+ 
+    if (quantite < 0) {
+        throw new BadRequestException("La quantité ne peut pas être négative");
     }
+ 
+    int stockAvant = livre.getQuantiteStock();
+    int stockApres = quantite; // ajusterStock fixe la quantité absolue
+ 
+    // Déterminer le type de mouvement selon la variation
+    TypeMouvement type;
+    int delta = stockApres - stockAvant;
+    if (delta > 0) {
+        type = TypeMouvement.ENTREE;
+    } else if (delta < 0) {
+        type = TypeMouvement.SORTIE;
+    } else {
+        // Pas de changement, on enregistre quand même comme AJUSTEMENT
+        type = TypeMouvement.AJUSTEMENT;
+    }
+ 
+    livre.setQuantiteStock(stockApres);
+    Livre updatedLivre = livreRepository.save(livre);
+ 
+    // Enregistrer le mouvement de stock
+    try {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        User currentUser = userRepository.findByEmail(authentication.getName()).orElse(null);
+ 
+        MouvementStock mouvement = new MouvementStock();
+        mouvement.setLivre(livre);
+        mouvement.setTypeMouvement(TypeMouvement.AJUSTEMENT);
+        mouvement.setQuantite(delta); // Peut être positif ou négatif
+        mouvement.setStockAvant(stockAvant);
+        mouvement.setStockApres(stockApres);
+        mouvement.setMotif(motif != null && !motif.isEmpty() ? motif : "Ajustement manuel");
+        mouvement.setReference("AJUSTEMENT-MANUEL");
+        mouvement.setUser(currentUser);
+        mouvement.setDateMouvement(LocalDateTime.now());
+ 
+        mouvementStockRepository.save(mouvement);
+    } catch (Exception e) {
+        // Ne pas bloquer l'ajustement si le mouvement échoue
+        // Logger l'erreur en production
+    }
+ 
+    return LivreResponse.fromEntity(updatedLivre);
+}
 
     /**
      * Génère un code unique pour le livre basé sur le code de la catégorie

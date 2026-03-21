@@ -209,8 +209,16 @@ public class VenteService {
    /**
  * Créer une ligne de vente avec application automatique de la meilleure réduction
  */
+// Dans VenteService.java — remplacer UNIQUEMENT la méthode createLigneVente
+
+/**
+ * Créer une ligne de vente avec la réduction choisie par le vendeur
+ * Si reductionId est fourni → utiliser cette réduction
+ * Sinon → aucune réduction (le vendeur n'a rien choisi)
+ */
 private LigneVente createLigneVente(LigneVenteRequest request, Vente vente) {
-    log.debug("Création ligne vente pour livre ID: {}, quantité: {}", request.getLivreId(), request.getQuantite());
+    log.debug("Création ligne vente pour livre ID: {}, quantité: {}, réductionId: {}",
+            request.getLivreId(), request.getQuantite(), request.getReductionId());
 
     Livre livre = livreRepository.findById(request.getLivreId().toString())
             .orElseThrow(() -> new ResourceNotFoundException(
@@ -232,34 +240,36 @@ private LigneVente createLigneVente(LigneVenteRequest request, Vente vente) {
     ligne.setPrixUnitaire(livre.getPrixVente());
     ligne.setQuantite(request.getQuantite());
 
-    // Récupérer la meilleure réduction applicable (sûre même avec plusieurs résultats)
-    String categorieId = livre.getCategorie() != null ? livre.getCategorie().getId() : null;
-
-    Reduction meilleure = reductionRepository.findBestApplicableReductionForLivre(
-            livre.getId(),
-            categorieId,
-            LocalDate.now()
-    ).orElse(null);
-
-    if (meilleure != null) {
-        log.debug("Meilleure réduction appliquée: {} (type: {}, valeur: {})",
-                meilleure.getIntitule(), meilleure.getType(), meilleure.getValeur());
-
-        BigDecimal montantReduc = meilleure.calculerMontantReduction(
-            ligne.getPrixUnitaire().multiply(BigDecimal.valueOf(ligne.getQuantite()))
-        );
-
-        ligne.setReduction(meilleure);
-        ligne.setMontantReduction(montantReduc);
+    // Utiliser la réduction choisie par le vendeur (si fournie et valide)
+    if (request.getReductionId() != null) {
+        reductionRepository.findById(request.getReductionId().toString())
+            .ifPresent(reduction -> {
+                // Vérifier que la réduction est encore valide
+                if (reduction.estValide()) {
+                    BigDecimal montantReduc = reduction.calculerMontantReduction(
+                        ligne.getPrixUnitaire().multiply(BigDecimal.valueOf(ligne.getQuantite()))
+                    );
+                    ligne.setReduction(reduction);
+                    ligne.setMontantReduction(montantReduc);
+                    log.debug("Réduction appliquée: {} ({})", reduction.getIntitule(), montantReduc);
+                } else {
+                    log.warn("Réduction {} expirée ou inactive, ignorée", request.getReductionId());
+                    ligne.setMontantReduction(BigDecimal.ZERO);
+                }
+            });
     } else {
-        log.debug("Aucune réduction applicable pour le livre {}", livre.getTitre());
+        // Aucune réduction choisie par le vendeur
+        ligne.setMontantReduction(BigDecimal.ZERO);
+        log.debug("Aucune réduction choisie pour le livre {}", livre.getTitre());
+    }
+
+    if (ligne.getMontantReduction() == null) {
         ligne.setMontantReduction(BigDecimal.ZERO);
     }
 
     ligne.calculerSousTotal();
     return ligne;
 }
-
 
     /**
      * Valider le stock avant création de vente
