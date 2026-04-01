@@ -96,4 +96,23 @@ public interface LivreRepository extends JpaRepository<Livre, String> {
      */
     @Query("SELECT DISTINCT l.langue FROM Livre l ORDER BY l.langue")
     List<String> findAllLangues();
+
+    // Vérifier doublon titre + auteur + catégorie (insensible à la casse)
+@Query("""
+    SELECT COUNT(l) > 0 FROM Livre l
+    WHERE LOWER(l.titre) = LOWER(:titre)
+      AND LOWER(COALESCE(l.auteur, '')) = LOWER(:auteur)
+      AND l.categorie.id = :categorieId
+    """)
+boolean existsByTitreAndAuteurAndCategorieId(
+    @Param("titre")       String titre,
+    @Param("auteur")      String auteur,
+    @Param("categorieId") String categorieId
+);
+ 
+// Compter les livres d'une catégorie par son code (pour le code séquentiel)
+@Query("SELECT COUNT(l) FROM Livre l WHERE l.categorie.code = :codeCategorie")
+int countByCategorieCode(@Param("codeCategorie") String codeCategorie);
+ 
+
 }

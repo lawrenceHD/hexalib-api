@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+
 import java.util.Optional;
 
 @Repository
@@ -29,4 +30,6 @@ public interface CategorieRepository extends JpaRepository<Categorie, String> {
     Page<Categorie> searchCategories(@Param("search") String search, Pageable pageable);
     
     Page<Categorie> findByStatut(Categorie.Statut statut, Pageable pageable);
+
+    Optional<Categorie> findByNomIgnoreCase(String nom);
 }

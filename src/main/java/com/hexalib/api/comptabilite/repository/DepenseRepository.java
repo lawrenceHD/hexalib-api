@@ -15,7 +15,6 @@ import java.util.List;
 @Repository
 public interface DepenseRepository extends JpaRepository<Depense, String> {
 
-    // Toutes les dépenses paginées avec filtres
     @Query("""
         SELECT d FROM Depense d
         WHERE (:categorieId IS NULL OR d.categorie.id = :categorieId)
@@ -30,7 +29,6 @@ public interface DepenseRepository extends JpaRepository<Depense, String> {
         Pageable pageable
     );
 
-    // Toutes les dépenses sur une période (pour rapports)
     @Query("""
         SELECT d FROM Depense d
         WHERE (:debut IS NULL OR d.dateDepense >= :debut)
@@ -42,7 +40,6 @@ public interface DepenseRepository extends JpaRepository<Depense, String> {
         @Param("fin") LocalDate fin
     );
 
-    // Total des dépenses sur une période
     @Query("""
         SELECT COALESCE(SUM(d.montant), 0)
         FROM Depense d
@@ -53,9 +50,9 @@ public interface DepenseRepository extends JpaRepository<Depense, String> {
         @Param("fin") LocalDate fin
     );
 
-    // Total des dépenses par catégorie sur une période
+    // ✅ 3 colonnes : nom, montant, count — utilisé par buildDepensesParCategorie
     @Query("""
-        SELECT d.categorie.nom, COALESCE(SUM(d.montant), 0), COUNT(d)
+        SELECT d.categorie.nom, SUM(d.montant), COUNT(d)
         FROM Depense d
         WHERE d.dateDepense BETWEEN :debut AND :fin
         GROUP BY d.categorie.id, d.categorie.nom
@@ -66,9 +63,10 @@ public interface DepenseRepository extends JpaRepository<Depense, String> {
         @Param("fin") LocalDate fin
     );
 
-    // Top 5 catégories de dépenses
+    // ✅ CORRIGÉ : aussi 3 colonnes (nom, montant, count) pour être cohérent
+    //    avec buildDepensesParCategorie qui lit row[0], row[1], row[2]
     @Query("""
-        SELECT d.categorie.nom, COALESCE(SUM(d.montant), 0)
+        SELECT d.categorie.nom, SUM(d.montant), COUNT(d)
         FROM Depense d
         WHERE d.dateDepense BETWEEN :debut AND :fin
         GROUP BY d.categorie.id, d.categorie.nom

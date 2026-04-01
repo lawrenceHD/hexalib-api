@@ -28,9 +28,9 @@ import java.util.stream.Collectors;
 @Transactional(readOnly = true)
 public class ComptabiliteService {
 
-    private final VenteRepository    venteRepository;
-    private final DepenseRepository  depenseRepository;
-    private final LivreRepository    livreRepository;
+    private final VenteRepository   venteRepository;
+    private final DepenseRepository depenseRepository;
+    private final LivreRepository   livreRepository;
 
     // ══════════════════════════════════════════════════
     // DASHBOARD
@@ -39,31 +39,29 @@ public class ComptabiliteService {
     public DashboardComptaDTO getDashboard(LocalDate debut, LocalDate fin) {
         log.info("Dashboard compta du {} au {}", debut, fin);
 
-        // Entrées : ventes validées
         LocalDateTime debutDT = debut.atStartOfDay();
         LocalDateTime finDT   = fin.atTime(LocalTime.MAX);
 
-       // REMPLACER dans getDashboard() :
-        BigDecimal totalEntrees = venteRepository.sumMontantByPeriode(debutDT, finDT);
+        BigDecimal totalEntrees   = venteRepository.sumMontantByPeriode(debutDT, finDT);
+        if (totalEntrees == null) totalEntrees = BigDecimal.ZERO;
 
         BigDecimal totalReductions = getSumReductionsByPeriode(debutDT, finDT);
-        long       nombreVentes    = venteRepository.countByPeriode(debutDT, finDT); // approx — à améliorer
+        long       nombreVentes    = venteRepository.countByPeriode(debutDT, finDT);
 
-        // Sorties : dépenses
-        BigDecimal totalSorties   = depenseRepository.sumMontantByPeriode(debut, fin);
-        long       nbDepenses     = depenseRepository.findWithFilters(null, debut, fin,
-                                        PageRequest.of(0, 1)).getTotalElements();
+        BigDecimal totalSorties = depenseRepository.sumMontantByPeriode(debut, fin);
+        if (totalSorties == null) totalSorties = BigDecimal.ZERO;
 
-        // Solde
-        BigDecimal solde = (totalEntrees != null ? totalEntrees : BigDecimal.ZERO)
-                .subtract(totalSorties != null ? totalSorties : BigDecimal.ZERO);
+        long nbDepenses = depenseRepository.findWithFilters(null, debut, fin,
+                PageRequest.of(0, 1)).getTotalElements();
 
-        // Dépenses par catégorie
+        BigDecimal solde = totalEntrees.subtract(totalSorties);
+
+        // Dépenses par catégorie (3 colonnes : nom, montant, count)
         List<Object[]> rawCats = depenseRepository.sumMontantByCategorieAndPeriode(debut, fin);
         List<DashboardComptaDTO.DepenseParCategorie> depensesParCategorie =
                 buildDepensesParCategorie(rawCats, totalSorties);
 
-        // Top 5
+        // Top 5 (3 colonnes : nom, montant, count)
         List<Object[]> top5Raw = depenseRepository.findTop5Categories(
                 debut, fin, PageRequest.of(0, 5));
         List<DashboardComptaDTO.DepenseParCategorie> top5 =
@@ -71,9 +69,9 @@ public class ComptabiliteService {
 
         return DashboardComptaDTO.builder()
                 .periode(debut + " → " + fin)
-                .totalEntrees(totalEntrees != null ? totalEntrees : BigDecimal.ZERO)
+                .totalEntrees(totalEntrees)
                 .nombreVentes(nombreVentes)
-                .totalSorties(totalSorties != null ? totalSorties : BigDecimal.ZERO)
+                .totalSorties(totalSorties)
                 .nombreDepenses(nbDepenses)
                 .soldeNet(solde)
                 .totalReductions(totalReductions)
@@ -94,25 +92,24 @@ public class ComptabiliteService {
 
         List<Vente> toutesVentes = venteRepository.findByPeriode(debutDT, finDT);
 
-        List<Vente> ventesAvec  = toutesVentes.stream()
+        List<Vente> ventesAvec = toutesVentes.stream()
                 .filter(v -> v.getMontantReductions().compareTo(BigDecimal.ZERO) > 0)
                 .collect(Collectors.toList());
 
-        List<Vente> ventesSans  = toutesVentes.stream()
+        List<Vente> ventesSans = toutesVentes.stream()
                 .filter(v -> v.getMontantReductions().compareTo(BigDecimal.ZERO) == 0)
                 .collect(Collectors.toList());
 
-        // Sélectionner les ventes à afficher selon le type
         List<Vente> ventesAffichees = switch (typeRapport) {
-            case "AVEC_REDUCTION"  -> ventesAvec;
-            case "SANS_REDUCTION"  -> ventesSans;
-            default                -> toutesVentes; // COMBINE
+            case "AVEC_REDUCTION" -> ventesAvec;
+            case "SANS_REDUCTION" -> ventesSans;
+            default               -> toutesVentes;
         };
 
         BigDecimal caTotal         = sum(toutesVentes, Vente::getMontantTTC);
         BigDecimal totalReductions = sum(toutesVentes, Vente::getMontantReductions);
-        BigDecimal caAvec          = sum(ventesAvec, Vente::getMontantTTC);
-        BigDecimal caSans          = sum(ventesSans, Vente::getMontantTTC);
+        BigDecimal caAvec          = sum(ventesAvec,   Vente::getMontantTTC);
+        BigDecimal caSans          = sum(ventesSans,   Vente::getMontantTTC);
 
         List<RapportVentesDTO.LigneVenteRapport> lignes = ventesAffichees.stream()
                 .map(v -> RapportVentesDTO.LigneVenteRapport.builder()
@@ -154,23 +151,28 @@ public class ComptabiliteService {
         LocalDateTime debutDT = debut.atStartOfDay();
         LocalDateTime finDT   = fin.atTime(LocalTime.MAX);
 
-       BigDecimal caVentes = venteRepository.sumMontantByPeriode(debutDT, finDT);
-        BigDecimal reductions  = getSumReductionsByPeriode(debutDT, finDT);
-        BigDecimal caNet       = (caVentes != null ? caVentes : BigDecimal.ZERO)
-                                    .subtract(reductions != null ? reductions : BigDecimal.ZERO);
+        BigDecimal caVentes = venteRepository.sumMontantByPeriode(debutDT, finDT);
+        if (caVentes == null) caVentes = BigDecimal.ZERO;
+
+        BigDecimal reductions = getSumReductionsByPeriode(debutDT, finDT);
+        if (reductions == null) reductions = BigDecimal.ZERO;
+
+        BigDecimal caNet = caVentes.subtract(reductions);
+
         BigDecimal totalCharges = depenseRepository.sumMontantByPeriode(debut, fin);
         if (totalCharges == null) totalCharges = BigDecimal.ZERO;
 
         BigDecimal resultat = caNet.subtract(totalCharges);
 
-        // Charges par catégorie
+        // Charges par catégorie — même pattern que buildDepensesParCategorie
         List<Object[]> rawCats = depenseRepository.sumMontantByCategorieAndPeriode(debut, fin);
         List<RapportCompteResultatDTO.ChargeParCategorie> charges = new ArrayList<>();
         final BigDecimal finalCharges = totalCharges;
+
         for (Object[] row : rawCats) {
             String     nom     = (String) row[0];
-            BigDecimal montant = (BigDecimal) row[1];
-            long       nb      = ((Number) row[2]).longValue();
+            BigDecimal montant = row[1] != null ? new BigDecimal(row[1].toString()) : BigDecimal.ZERO;
+            long       nb      = row[2] != null ? ((Number) row[2]).longValue() : 0L;
             BigDecimal pct     = finalCharges.compareTo(BigDecimal.ZERO) > 0
                     ? montant.divide(finalCharges, 4, RoundingMode.HALF_UP)
                              .multiply(BigDecimal.valueOf(100))
@@ -186,8 +188,8 @@ public class ComptabiliteService {
         return RapportCompteResultatDTO.builder()
                 .dateDebut(debut)
                 .dateFin(fin)
-                .caVentes(caVentes != null ? caVentes : BigDecimal.ZERO)
-                .totalReductionsAccordees(reductions != null ? reductions : BigDecimal.ZERO)
+                .caVentes(caVentes)
+                .totalReductionsAccordees(reductions)
                 .caNet(caNet)
                 .totalCharges(totalCharges)
                 .chargesParCategorie(charges)
@@ -238,7 +240,6 @@ public class ComptabiliteService {
                     .build());
         }
 
-        // Trier chronologiquement
         flux.sort(Comparator.comparing(RapportTresorerieDTO.FluxTresorerie::getDate));
 
         BigDecimal totalEntrees = flux.stream()
@@ -275,11 +276,10 @@ public class ComptabiliteService {
                 .map(l -> l.getPrixVente().multiply(BigDecimal.valueOf(l.getQuantiteStock())))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        int enRupture  = (int) tousLivres.stream().filter(Livre::isEnRupture).count();
-        int critiques  = (int) tousLivres.stream()
+        int enRupture = (int) tousLivres.stream().filter(Livre::isEnRupture).count();
+        int critiques = (int) tousLivres.stream()
                 .filter(l -> l.isStockCritique() && !l.isEnRupture()).count();
 
-        // Par catégorie
         List<RapportStockValoriseDTO.StockParCategorie> parCategorie = tousLivres.stream()
                 .filter(l -> l.getStatut() == Livre.Statut.ACTIF)
                 .collect(Collectors.groupingBy(l -> l.getCategorie().getNom()))
@@ -287,9 +287,10 @@ public class ComptabiliteService {
                 .map(e -> {
                     List<Livre> livresCat = e.getValue();
                     BigDecimal valeur = livresCat.stream()
-                            .map(l -> l.getPrixVente().multiply(BigDecimal.valueOf(l.getQuantiteStock())))
+                            .map(l -> l.getPrixVente()
+                                    .multiply(BigDecimal.valueOf(l.getQuantiteStock())))
                             .reduce(BigDecimal.ZERO, BigDecimal::add);
-                    int qte = livresCat.stream().mapToInt(Livre::getQuantiteStock).sum();
+                    int qte  = livresCat.stream().mapToInt(Livre::getQuantiteStock).sum();
                     String code = livresCat.get(0).getCategorie().getCode();
                     return RapportStockValoriseDTO.StockParCategorie.builder()
                             .categorieNom(e.getKey())
@@ -303,13 +304,11 @@ public class ComptabiliteService {
                         RapportStockValoriseDTO.StockParCategorie::getValeurPrixVente).reversed())
                 .collect(Collectors.toList());
 
-        // Livres en rupture
         List<RapportStockValoriseDTO.LivreStockInfo> livresRupture = tousLivres.stream()
                 .filter(Livre::isEnRupture)
                 .map(this::toLivreStockInfo)
                 .collect(Collectors.toList());
 
-        // Livres critiques
         List<RapportStockValoriseDTO.LivreStockInfo> livresCritiques = tousLivres.stream()
                 .filter(l -> l.isStockCritique() && !l.isEnRupture())
                 .map(this::toLivreStockInfo)
@@ -343,19 +342,24 @@ public class ComptabiliteService {
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
+    // Lit toujours 3 colonnes : row[0]=nom, row[1]=montant, row[2]=count
     private List<DashboardComptaDTO.DepenseParCategorie> buildDepensesParCategorie(
             List<Object[]> raw, BigDecimal total) {
         List<DashboardComptaDTO.DepenseParCategorie> result = new ArrayList<>();
         if (total == null) total = BigDecimal.ZERO;
         final BigDecimal finalTotal = total;
+
         for (Object[] row : raw) {
             String     nom     = (String) row[0];
-            BigDecimal montant = (BigDecimal) row[1];
-            long       nb      = ((Number) row[2]).longValue();
+            BigDecimal montant = row[1] != null
+                    ? new BigDecimal(row[1].toString()) : BigDecimal.ZERO;
+            long       nb      = row[2] != null
+                    ? ((Number) row[2]).longValue() : 0L;
             BigDecimal pct     = finalTotal.compareTo(BigDecimal.ZERO) > 0
                     ? montant.divide(finalTotal, 4, RoundingMode.HALF_UP)
                              .multiply(BigDecimal.valueOf(100))
                     : BigDecimal.ZERO;
+
             result.add(DashboardComptaDTO.DepenseParCategorie.builder()
                     .categorieNom(nom)
                     .montant(montant)

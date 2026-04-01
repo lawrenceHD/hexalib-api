@@ -1,16 +1,14 @@
 package com.hexalib.api.livre.controller;
 
-import com.hexalib.api.auth.repository.UserRepository;
- import com.hexalib.api.livre.dto.ImportResultResponse;
- import com.hexalib.api.livre.service.LivreExportService;
- import com.hexalib.api.livre.service.LivreImportService;
- import org.springframework.http.MediaType;
- import org.springframework.web.multipart.MultipartFile;
- import org.springframework.http.HttpHeaders;
+import com.hexalib.api.livre.dto.ImportJobDTO;
+import com.hexalib.api.livre.service.LivreExportService;
+import com.hexalib.api.livre.service.LivreImportService;
+import org.springframework.http.MediaType;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.http.HttpHeaders;
 
 import com.hexalib.api.common.dto.ApiResponse;
 import com.hexalib.api.common.dto.PageResponse;
-import com.hexalib.api.livre.dto.ImportResultResponse;
 import com.hexalib.api.livre.dto.LivreRequest;
 import com.hexalib.api.livre.dto.LivreResponse;
 import com.hexalib.api.livre.service.LivreService;
@@ -23,7 +21,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -34,9 +31,9 @@ import java.util.List;
 @SecurityRequirement(name = "bearerAuth")
 public class LivreController {
 
-    private final LivreService livreService;
-    private final LivreImportService livreImportService;
-private final LivreExportService livreExportService;
+    private final LivreService        livreService;
+    private final LivreImportService  livreImportService;
+    private final LivreExportService  livreExportService;
 
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
@@ -65,28 +62,28 @@ private final LivreExportService livreExportService;
     }
 
     @GetMapping("/stock-critique")
-    @Operation(summary = "Livres en stock critique", description = "Récupérer tous les livres dont le stock est inférieur ou égal au seuil minimal")
+    @Operation(summary = "Livres en stock critique")
     public ResponseEntity<ApiResponse<List<LivreResponse>>> getLivresStockCritique() {
         List<LivreResponse> livres = livreService.getLivresStockCritique();
         return ResponseEntity.ok(ApiResponse.success(livres));
     }
 
     @GetMapping("/rupture")
-    @Operation(summary = "Livres en rupture", description = "Récupérer tous les livres en rupture de stock")
+    @Operation(summary = "Livres en rupture")
     public ResponseEntity<ApiResponse<List<LivreResponse>>> getLivresEnRupture() {
         List<LivreResponse> livres = livreService.getLivresEnRupture();
         return ResponseEntity.ok(ApiResponse.success(livres));
     }
 
     @GetMapping("/langues")
-    @Operation(summary = "Liste des langues", description = "Récupérer toutes les langues disponibles dans le catalogue")
+    @Operation(summary = "Liste des langues")
     public ResponseEntity<ApiResponse<List<String>>> getAllLangues() {
         List<String> langues = livreService.getAllLangues();
         return ResponseEntity.ok(ApiResponse.success(langues));
     }
 
     @GetMapping("/{id}")
-    @Operation(summary = "Détail d'un livre", description = "Récupérer les détails complets d'un livre par son ID")
+    @Operation(summary = "Détail d'un livre")
     public ResponseEntity<ApiResponse<LivreResponse>> getLivreById(@PathVariable String id) {
         LivreResponse livre = livreService.getLivreById(id);
         return ResponseEntity.ok(ApiResponse.success(livre));
@@ -94,7 +91,7 @@ private final LivreExportService livreExportService;
 
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Modifier un livre", description = "Modifier les informations d'un livre existant (Admin uniquement)")
+    @Operation(summary = "Modifier un livre")
     public ResponseEntity<ApiResponse<LivreResponse>> updateLivre(
             @PathVariable String id,
             @Valid @RequestBody LivreRequest request) {
@@ -104,7 +101,7 @@ private final LivreExportService livreExportService;
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Supprimer un livre", description = "Supprimer un livre du catalogue (Admin uniquement)")
+    @Operation(summary = "Supprimer un livre")
     public ResponseEntity<ApiResponse<Void>> deleteLivre(@PathVariable String id) {
         livreService.deleteLivre(id);
         return ResponseEntity.ok(ApiResponse.success("Livre supprimé avec succès", null));
@@ -112,7 +109,7 @@ private final LivreExportService livreExportService;
 
     @PatchMapping("/{id}/toggle-statut")
     @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Activer/Désactiver un livre", description = "Changer le statut d'un livre (Admin uniquement)")
+    @Operation(summary = "Activer/Désactiver un livre")
     public ResponseEntity<ApiResponse<LivreResponse>> toggleStatut(@PathVariable String id) {
         LivreResponse livre = livreService.toggleStatut(id);
         return ResponseEntity.ok(ApiResponse.success("Statut modifié avec succès", livre));
@@ -120,7 +117,7 @@ private final LivreExportService livreExportService;
 
     @PatchMapping("/{id}/ajuster-stock")
     @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Ajuster le stock", description = "Modifier manuellement la quantité en stock d'un livre (Admin uniquement)")
+    @Operation(summary = "Ajuster le stock")
     public ResponseEntity<ApiResponse<LivreResponse>> ajusterStock(
             @PathVariable String id,
             @RequestParam Integer quantite,
@@ -129,31 +126,34 @@ private final LivreExportService livreExportService;
         return ResponseEntity.ok(ApiResponse.success("Stock ajusté avec succès", livre));
     }
 
-    @PostMapping("/import")
-@PreAuthorize("hasRole('ADMIN')")
-@Operation(summary = "Importer des livres", description = "Importer une liste de livres depuis un fichier Excel (Admin uniquement)")
-public ResponseEntity<ApiResponse<ImportResultResponse>> importLivres(
-        @RequestParam("file") MultipartFile file,
-        @RequestParam("categorieId") String categorieId) {
- 
-    ImportResultResponse result = livreImportService.importLivres(file, categorieId);
-    return ResponseEntity.ok(ApiResponse.success("Import terminé", result));
-}
- 
-@GetMapping("/export")
-@PreAuthorize("hasRole('ADMIN')")
-@Operation(summary = "Exporter l'inventaire", description = "Exporter tous les livres au format Excel (Admin uniquement)")
-public ResponseEntity<byte[]> exportLivres() {
-    byte[] excelBytes = livreExportService.exportLivres();
- 
-    String filename = "Inventaire_Hexalib_" +
-            java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd")) + ".xlsx";
- 
-    HttpHeaders headers = new HttpHeaders();
-    headers.setContentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
-    headers.setContentDispositionFormData("attachment", filename);
-    headers.setCacheControl("must-revalidate, post-check=0, pre-check=0");
- 
-    return new ResponseEntity<>(excelBytes, headers, HttpStatus.OK);
-}
+    // ══════════════════════════════════════════════════════════════════
+    // IMPORT EXCEL — 2 étapes avec progression
+    // Les routes /import/upload et /import/{jobId}/batch/{n}
+    // sont gérées par LivreImportController (@RequestMapping("/api/livres/import"))
+    // Ces méthodes ci-dessous ont été supprimées de ce controller pour éviter
+    // les conflits de routes. Utilisez LivreImportController à la place.
+    // ══════════════════════════════════════════════════════════════════
+
+    // ══════════════════════════════════════════════════════════════════
+    // EXPORT EXCEL
+    // ══════════════════════════════════════════════════════════════════
+
+    @GetMapping("/export")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Exporter l'inventaire", description = "Exporter tous les livres au format Excel (Admin uniquement)")
+    public ResponseEntity<byte[]> exportLivres() {
+        byte[] excelBytes = livreExportService.exportLivres();
+
+        String filename = "Inventaire_Hexalib_" +
+                java.time.LocalDate.now()
+                        .format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd")) + ".xlsx";
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.parseMediaType(
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
+        headers.setContentDispositionFormData("attachment", filename);
+        headers.setCacheControl("must-revalidate, post-check=0, pre-check=0");
+
+        return new ResponseEntity<>(excelBytes, headers, HttpStatus.OK);
+    }
 }
