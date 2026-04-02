@@ -1,36 +1,30 @@
 package com.hexalib.api.livre.service;
 
-import com.hexalib.api.categorie.model.Categorie;
-import com.hexalib.api.categorie.repository.CategorieRepository;
-import com.hexalib.api.common.util.CodeGenerator;
 import com.hexalib.api.livre.dto.ImportJobDTO;
-import com.hexalib.api.livre.model.Livre;
-import com.hexalib.api.livre.repository.LivreRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class LivreImportService {
 
-    private static final int DATA_START_ROW = 4; // ligne 5 = index 4
+    private static final int DATA_START_ROW = 4;
     private static final int BATCH_SIZE     = 50;
 
-    private final CategorieRepository categorieRepository;
-    private final LivreRepository     livreRepository;
-    private final ImportJobStore      jobStore;
-    // ✅ Plus de dépendance à CategorieService — on utilise CodeGenerator directement
+    private final ImportJobStore         jobStore;
+    private final LivreImportLineService lineService; // bean séparé → REQUIRES_NEW fonctionne
 
     // ══════════════════════════════════════════════════════════════════
     // ÉTAPE 1 : Upload + parsing → création du job
@@ -54,10 +48,8 @@ public class LivreImportService {
                 String editeur    = getCellString(row, 3);
                 String remarque   = getCellString(row, 6);
 
-                // Ignorer les lignes sans titre
                 if (titre.isBlank()) continue;
 
-                // Traitement du prix (colonne E = index 4)
                 BigDecimal prixVente = null;
                 boolean inactif = false;
                 Cell prixCell = row.getCell(4);
@@ -66,15 +58,13 @@ public class LivreImportService {
                     if (prixCell.getCellType() == CellType.NUMERIC) {
                         double valBrute = prixCell.getNumericCellValue();
                         if (valBrute == 0.0) {
-                            // Prix 0 = pas à vendre → INACTIF
                             inactif = true;
                         } else {
-                            // 3000 → 30.00 XAF
                             prixVente = BigDecimal.valueOf(valBrute)
                                     .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
                         }
                     }
-                    // CellType.STRING avec "xx" → prixVente reste null, inactif reste false
+                    // STRING "xx" → prixVente reste null, inactif reste false
                 }
 
                 lignes.add(new ImportJobStore.LigneParsee(
@@ -105,9 +95,10 @@ public class LivreImportService {
 
     // ══════════════════════════════════════════════════════════════════
     // ÉTAPE 2 : Traitement d'un batch
+    // PAS de @Transactional ici — chaque ligne gère sa propre transaction
+    // via lineService.traiterLigne() qui est REQUIRES_NEW
     // ══════════════════════════════════════════════════════════════════
 
-    @Transactional
     public ImportJobDTO.ImportBatchResult traiterBatch(String jobId, int batchNumero) {
         ImportJobStore.JobData job = jobStore.getJob(jobId);
         if (job == null) throw new RuntimeException("Job introuvable : " + jobId);
@@ -124,17 +115,21 @@ public class LivreImportService {
 
         List<ImportJobStore.LigneParsee> batch = toutesLignes.subList(debut, fin);
 
+        // Cache partagé entre tous les batches : nom catégorie → id BDD
+        Map<String, String> cacheCategories = job.cacheCategories();
+
         int livresAjoutes = 0;
         int livresIgnores = 0;
         List<ImportJobDTO.LigneErreur> erreurs = new ArrayList<>();
 
         for (ImportJobStore.LigneParsee ligne : batch) {
             try {
-                boolean ajoute = traiterLigne(ligne);
+                // Chaque ligne dans sa propre transaction REQUIRES_NEW
+                boolean ajoute = lineService.traiterLigne(ligne, cacheCategories);
                 if (ajoute) livresAjoutes++;
                 else        livresIgnores++;
             } catch (Exception e) {
-                log.warn("Erreur ligne {} : {}", ligne.numeroLigne(), e.getMessage());
+                log.warn("Ligne {} ignorée : {}", ligne.numeroLigne(), e.getMessage());
                 erreurs.add(ImportJobDTO.LigneErreur.builder()
                         .numeroLigne(ligne.numeroLigne())
                         .titre(ligne.titre())
@@ -166,84 +161,7 @@ public class LivreImportService {
         return builder.build();
     }
 
-    // ══════════════════════════════════════════════════════════════════
-    // LOGIQUE PRINCIPALE : traiter une ligne
-    // ══════════════════════════════════════════════════════════════════
-
-    private boolean traiterLigne(ImportJobStore.LigneParsee ligne) {
-        // 1. Vérifier ou créer la catégorie
-        Categorie categorie = obtenirOuCreerCategorie(ligne.categorie());
-
-        // 2. Vérifier doublon : titre + auteur + catégorie (via @Query)
-        String auteur = ligne.auteur() != null ? ligne.auteur() : "";
-        boolean existe = livreRepository
-                .existsByTitreAndAuteurAndCategorieId(ligne.titre(), auteur, categorie.getId());
-        if (existe) return false; // doublon ignoré silencieusement
-
-        // 3. Créer le livre
-        Livre livre = new Livre();
-        livre.setTitre(ligne.titre());
-        livre.setAuteur(ligne.auteur());
-        livre.setMaisonEdition(ligne.maisonEdition());
-        livre.setPrixVente(ligne.prixVente());
-        livre.setDescription(ligne.description());
-        livre.setCategorie(categorie);
-        livre.setQuantiteStock(0);
-        livre.setSeuilMinimal(5);
-        livre.setStatut(ligne.inactif() ? Livre.Statut.INACTIF : Livre.Statut.ACTIF);
-        livre.setCode(genererCodeLivre(categorie.getCode()));
-
-        livreRepository.save(livre);
-        return true;
-    }
-
-    // ══════════════════════════════════════════════════════════════════
-    // HELPERS
-    // ══════════════════════════════════════════════════════════════════
-
-    // Cache local pour ne pas faire N fois la même requête BDD dans un batch
-    private final Map<String, Categorie> cacheCategories = new HashMap<>();
-
-    private Categorie obtenirOuCreerCategorie(String nomCategorie) {
-        if (nomCategorie == null || nomCategorie.isBlank()) {
-            nomCategorie = "Non classé";
-        }
-        final String nom = nomCategorie;
-
-        return cacheCategories.computeIfAbsent(nom.toLowerCase(), k ->
-            categorieRepository.findByNomIgnoreCase(nom)
-                .orElseGet(() -> {
-                    log.info("Création catégorie : {}", nom);
-                    Categorie cat = new Categorie();
-                    cat.setNom(nom);
-                    cat.setStatut(Categorie.Statut.ACTIF);
-                    cat.setCode(genererCodeCategorieUnique(nom));
-                    return categorieRepository.save(cat);
-                })
-        );
-    }
-
-    /**
-     * Même logique que CategorieService.generateUniqueCode()
-     * mais sans injecter CategorieService (évite la dépendance circulaire potentielle).
-     */
-    private String genererCodeCategorieUnique(String nom) {
-        String code;
-        int attempts = 0;
-        do {
-            code = CodeGenerator.generateCategorieCode(nom);
-            attempts++;
-            if (attempts > 100) {
-                throw new RuntimeException("Impossible de générer un code unique pour : " + nom);
-            }
-        } while (categorieRepository.existsByCode(code));
-        return code;
-    }
-
-    private String genererCodeLivre(String codeCategorie) {
-        int suivant = livreRepository.countByCategorieCode(codeCategorie) + 1;
-        return String.format("%s-%03d", codeCategorie, suivant);
-    }
+    // ── Helpers ───────────────────────────────────────────────────────
 
     private ImportJobDTO.ImportRapportFinal construireRapportFinal(
             int totalLignes, List<ImportJobDTO.LigneErreur> erreurs) {
