@@ -15,7 +15,10 @@ public class CorsConfig {
     public CorsFilter corsFilter() {
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowCredentials(true);
-        config.setAllowedOrigins(Arrays.asList("http://localhost:4200")); // Angular frontend
+        config.setAllowedOrigins(Arrays.asList("http://localhost:4200",
+        "http://127.0.0.1",
+            "http://localhost"  
+        )); // Angular frontend
         config.setAllowedHeaders(Arrays.asList("*"));
         config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         config.setExposedHeaders(Arrays.asList("Authorization"));

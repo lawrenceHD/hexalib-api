@@ -26,37 +26,45 @@ public class LivreImportLineService {
     public boolean traiterLigne(ImportJobStore.LigneParsee ligne,
                                 Map<String, String> cacheCategories) {
 
-        // 1. Obtenir l'ID de catégorie (créer si nécessaire)
+        // 1. Obtenir ou créer la catégorie
         String categorieId = obtenirOuCreerCategorieId(ligne.categorie(), cacheCategories);
 
-        // 2. Recharger l'entité dans la session courante (évite detached entity)
+        // 2. Recharger l'entité dans la session courante
         Categorie categorie = categorieRepository.findById(categorieId)
                 .orElseThrow(() -> new RuntimeException(
                         "Catégorie introuvable : " + categorieId));
 
-        // 3. Vérifier doublon
+        // 3. Vérifier doublon (même titre + auteur + catégorie)
         String auteur = ligne.auteur() != null ? ligne.auteur() : "";
         boolean existe = livreRepository
                 .existsByTitreAndAuteurAndCategorieId(ligne.titre(), auteur, categorieId);
-        if (existe) return false;
+        if (existe) {
+            log.debug("Doublon ignoré : '{}' / '{}'", ligne.titre(), auteur);
+            return false;
+        }
 
-        // 4. Créer le livre
+        // 4. Créer le livre — tous ACTIF, sans exception de catégorie
         Livre livre = new Livre();
         livre.setTitre(ligne.titre());
-        livre.setAuteur(ligne.auteur());
-        livre.setMaisonEdition(ligne.maisonEdition());
-        livre.setPrixVente(ligne.prixVente() != null ? ligne.prixVente() : BigDecimal.ZERO);
+        livre.setAuteur(ligne.auteur() != null ? ligne.auteur() : "Inconnu");
+        livre.setMaisonEdition(ligne.maisonEdition() != null ? ligne.maisonEdition() : "");
         livre.setDescription(ligne.description());
+        livre.setPrixVente(ligne.prixVente() != null ? ligne.prixVente() : BigDecimal.ZERO);
+        livre.setPrixAchat(ligne.prixAchat());   // null si non renseigné — c'est OK
         livre.setCategorie(categorie);
         livre.setQuantiteStock(0);
         livre.setSeuilMinimal(5);
-        livre.setLangue("Français");
-        livre.setStatut(ligne.inactif() ? Livre.Statut.INACTIF : Livre.Statut.ACTIF);
+        livre.setLangue(detecterLangue(ligne.categorie()));
+        livre.setStatut(Livre.Statut.ACTIF);     // Toujours ACTIF, toutes catégories incluses
         livre.setCode(genererCodeLivre(categorie.getCode()));
 
         livreRepository.save(livre);
         return true;
     }
+
+    // ══════════════════════════════════════════════════════════════════
+    // CATÉGORIE
+    // ══════════════════════════════════════════════════════════════════
 
     private String obtenirOuCreerCategorieId(String nomCategorie,
                                               Map<String, String> cache) {
@@ -93,8 +101,43 @@ public class LivreImportLineService {
         return code;
     }
 
+    // ══════════════════════════════════════════════════════════════════
+    // CODE LIVRE
+    // ══════════════════════════════════════════════════════════════════
+
     private String genererCodeLivre(String codeCategorie) {
         int suivant = livreRepository.countByCategorieCode(codeCategorie) + 1;
-        return String.format("%s-%03d", codeCategorie, suivant);
+        String code = String.format("%s-%03d", codeCategorie, suivant);
+        // Sécurité : si le code existe déjà (import parallèle ou compteur désynchronisé)
+        int tentatives = 0;
+        while (livreRepository.existsByCode(code) && tentatives < 500) {
+            suivant++;
+            tentatives++;
+            code = String.format("%s-%03d", codeCategorie, suivant);
+        }
+        return code;
+    }
+
+    // ══════════════════════════════════════════════════════════════════
+    // DÉTECTION LANGUE
+    // Déduit la langue à partir du nom de catégorie.
+    // Les catégories comme "Fulfuldé", "Gbaya", etc. sont des langues africaines.
+    // ══════════════════════════════════════════════════════════════════
+
+    private String detecterLangue(String nomCategorie) {
+        if (nomCategorie == null) return "Français";
+        String cat = nomCategorie.toLowerCase().trim();
+        return switch (cat) {
+            case "anglais"    -> "Anglais";
+            case "fulfuldé"   -> "Fulfuldé";
+            case "gbaya"      -> "Gbaya";
+            case "giziga"     -> "Giziga";
+            case "mafa"       -> "Mafa";
+            case "massana"    -> "Massana";
+            case "mousseye"   -> "Mousseye";
+            case "mundang"    -> "Mundang";
+            case "tupuri"     -> "Tupuri";
+            default           -> "Français";
+        };
     }
 }

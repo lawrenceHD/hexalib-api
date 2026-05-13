@@ -11,23 +11,21 @@ import java.util.concurrent.ConcurrentHashMap;
 public class ImportJobStore {
 
     public record LigneParsee(
-            int    numeroLigne,
-            String categorie,
-            String titre,
-            String auteur,
-            String maisonEdition,
+            int              numeroLigne,
+            String           categorie,
+            String           titre,
+            String           auteur,
+            String           maisonEdition,
             java.math.BigDecimal prixVente,
-            boolean inactif,
-            String description
+            java.math.BigDecimal prixAchat,   // ← colonne F (prix net)
+            boolean          inactif,         // conservé pour compatibilité (plus utilisé)
+            String           description
     ) {}
 
     public record JobData(
             String              jobId,
             List<LigneParsee>   lignes,
             int                 batchSize,
-            // Clé : nom catégorie en lowercase → Valeur : ID en base
-            // On stocke UNIQUEMENT l'ID (pas l'entité) pour éviter
-            // les problèmes d'entités Hibernate détachées entre les batches
             Map<String, String> cacheCategories
     ) {}
 

@@ -10,7 +10,6 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -20,11 +19,11 @@ import java.util.Map;
 @Slf4j
 public class LivreImportService {
 
-    private static final int DATA_START_ROW = 4;
+    private static final int DATA_START_ROW = 4; // ligne 5 dans Excel (0-indexé)
     private static final int BATCH_SIZE     = 50;
 
     private final ImportJobStore         jobStore;
-    private final LivreImportLineService lineService; // bean séparé → REQUIRES_NEW fonctionne
+    private final LivreImportLineService lineService;
 
     // ══════════════════════════════════════════════════════════════════
     // ÉTAPE 1 : Upload + parsing → création du job
@@ -42,40 +41,36 @@ public class LivreImportService {
                 Row row = sheet.getRow(i);
                 if (row == null) continue;
 
-                String categorie  = getCellString(row, 0);
-                String titre      = getCellString(row, 1);
-                String auteurIsbn = getCellString(row, 2);
-                String editeur    = getCellString(row, 3);
-                String remarque   = getCellString(row, 6);
+                String categorie  = getCellString(row, 0).trim();
+                String titre      = getCellString(row, 1).trim();
+                String auteurIsbn = getCellString(row, 2).trim();
+                String editeur    = getCellString(row, 3).trim();
+                String remarque   = getCellString(row, 6).trim();
 
+                // Ignorer les lignes sans titre
                 if (titre.isBlank()) continue;
 
-                BigDecimal prixVente = null;
-                boolean inactif = false;
-                Cell prixCell = row.getCell(4);
+                // ── Colonne E : prix de vente ─────────────────────────────
+                BigDecimal prixVente = parsePrixVente(row.getCell(4), titre, remarque);
+                // remarque peut avoir été enrichie dans parsePrixVente via StringBuilder
+                // → on la récupère via le holder
+                String[] descriptionHolder = { remarque.isBlank() ? null : remarque };
+                prixVente = parsePrixVenteAvecDesc(row.getCell(4), descriptionHolder);
+                String descriptionFinale = descriptionHolder[0];
 
-                if (prixCell != null) {
-                    if (prixCell.getCellType() == CellType.NUMERIC) {
-                        double valBrute = prixCell.getNumericCellValue();
-                        if (valBrute == 0.0) {
-                            inactif = true;
-                        } else {
-                            prixVente = BigDecimal.valueOf(valBrute)
-                                    .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
-                        }
-                    }
-                    // STRING "xx" → prixVente reste null, inactif reste false
-                }
+                // ── Colonne F : prix net → prix d'achat ───────────────────
+                BigDecimal prixAchat = parsePrixAchat(row.getCell(5));
 
                 lignes.add(new ImportJobStore.LigneParsee(
                         i + 1,
-                        categorie.trim(),
-                        titre.trim(),
-                        auteurIsbn.isBlank() ? null : auteurIsbn.trim(),
-                        editeur.isBlank()    ? null : editeur.trim(),
+                        categorie.isBlank() ? "Non classé" : categorie,
+                        titre,
+                        auteurIsbn.isBlank() ? null : auteurIsbn,
+                        editeur.isBlank()    ? null : editeur,
                         prixVente,
-                        inactif,
-                        remarque.isBlank()   ? null : remarque.trim()
+                        prixAchat,
+                        false,           // inactif : toujours false, toutes les catégories sont ACTIF
+                        descriptionFinale
                 ));
             }
         }
@@ -95,8 +90,6 @@ public class LivreImportService {
 
     // ══════════════════════════════════════════════════════════════════
     // ÉTAPE 2 : Traitement d'un batch
-    // PAS de @Transactional ici — chaque ligne gère sa propre transaction
-    // via lineService.traiterLigne() qui est REQUIRES_NEW
     // ══════════════════════════════════════════════════════════════════
 
     public ImportJobDTO.ImportBatchResult traiterBatch(String jobId, int batchNumero) {
@@ -114,9 +107,7 @@ public class LivreImportService {
         }
 
         List<ImportJobStore.LigneParsee> batch = toutesLignes.subList(debut, fin);
-
-        // Cache partagé entre tous les batches : nom catégorie → id BDD
-        Map<String, String> cacheCategories = job.cacheCategories();
+        Map<String, String> cacheCategories    = job.cacheCategories();
 
         int livresAjoutes = 0;
         int livresIgnores = 0;
@@ -124,7 +115,6 @@ public class LivreImportService {
 
         for (ImportJobStore.LigneParsee ligne : batch) {
             try {
-                // Chaque ligne dans sa propre transaction REQUIRES_NEW
                 boolean ajoute = lineService.traiterLigne(ligne, cacheCategories);
                 if (ajoute) livresAjoutes++;
                 else        livresIgnores++;
@@ -161,7 +151,112 @@ public class LivreImportService {
         return builder.build();
     }
 
-    // ── Helpers ───────────────────────────────────────────────────────
+    // ══════════════════════════════════════════════════════════════════
+    // PARSING DES PRIX
+    // ══════════════════════════════════════════════════════════════════
+
+    /**
+     * Parse le prix de vente (colonne E).
+     *
+     * Règles :
+     * - Numérique → valeur brute en XAF (PAS de division par 100)
+     * - "xx" ou vide → 0 XAF
+     * - "1.000/100" ou "2.000/100" → prendre la partie avant "/" (ex: 1000)
+     *   et enrichir la description avec "1000 FCFA pour 100 unités"
+     *
+     * @param cell             cellule Excel
+     * @param descriptionHolder tableau[0] contenant la description existante ;
+     *                          modifié en place si format X/100 détecté
+     */
+    private BigDecimal parsePrixVenteAvecDesc(Cell cell, String[] descriptionHolder) {
+        if (cell == null) return BigDecimal.ZERO;
+
+        if (cell.getCellType() == CellType.NUMERIC) {
+            double val = cell.getNumericCellValue();
+            // Valeur 0 → prix inconnu, on met 0 (le livre reste ACTIF)
+            return BigDecimal.valueOf(val).setScale(2);
+        }
+
+        if (cell.getCellType() == CellType.STRING) {
+            String raw = cell.getStringCellValue().trim();
+
+            // Cas "xx" ou vide → 0
+            if (raw.isEmpty() || raw.equalsIgnoreCase("xx")) {
+                return BigDecimal.ZERO;
+            }
+
+            // Cas "1.000/100" ou "2.000/100" → prix par paquet de 100
+            if (raw.contains("/")) {
+                String avant = raw.split("/")[0].trim();
+                // Supprimer les séparateurs de milliers (point ou espace)
+                avant = avant.replace(".", "").replace(" ", "").replace(",", "");
+                try {
+                    BigDecimal prixPaquet = new BigDecimal(avant).setScale(2);
+                    // Enrichir la description
+                    String noteParquet = prixPaquet.toPlainString().replace(".00", "")
+                            + " FCFA pour 100 unités";
+                    if (descriptionHolder[0] != null && !descriptionHolder[0].isBlank()) {
+                        descriptionHolder[0] = descriptionHolder[0] + " | " + noteParquet;
+                    } else {
+                        descriptionHolder[0] = noteParquet;
+                    }
+                    return prixPaquet;
+                } catch (NumberFormatException e) {
+                    log.warn("Prix invalide ignoré : '{}'", raw);
+                    return BigDecimal.ZERO;
+                }
+            }
+
+            // Autre chaîne numérique simple (ex: "3000")
+            String cleaned = raw.replace(".", "").replace(",", "").replace(" ", "");
+            try {
+                return new BigDecimal(cleaned).setScale(2);
+            } catch (NumberFormatException e) {
+                log.warn("Prix non parseable : '{}'", raw);
+                return BigDecimal.ZERO;
+            }
+        }
+
+        return BigDecimal.ZERO;
+    }
+
+    // Méthode legacy conservée pour compatibilité — délègue vers la version avec desc
+    private BigDecimal parsePrixVente(Cell cell, String titre, String remarque) {
+        String[] holder = { remarque };
+        return parsePrixVenteAvecDesc(cell, holder);
+    }
+
+    /**
+     * Parse le prix d'achat (colonne F = "prix net").
+     * Même logique que prixVente mais sans la gestion du format X/100.
+     */
+    private BigDecimal parsePrixAchat(Cell cell) {
+        if (cell == null) return null;
+
+        if (cell.getCellType() == CellType.NUMERIC) {
+            double val = cell.getNumericCellValue();
+            if (val == 0.0) return null;
+            return BigDecimal.valueOf(val).setScale(2);
+        }
+
+        if (cell.getCellType() == CellType.STRING) {
+            String raw = cell.getStringCellValue().trim();
+            if (raw.isEmpty() || raw.equalsIgnoreCase("xx")) return null;
+            String cleaned = raw.replace(".", "").replace(",", "").replace(" ", "");
+            try {
+                BigDecimal val = new BigDecimal(cleaned).setScale(2);
+                return val.compareTo(BigDecimal.ZERO) == 0 ? null : val;
+            } catch (NumberFormatException e) {
+                return null;
+            }
+        }
+
+        return null;
+    }
+
+    // ══════════════════════════════════════════════════════════════════
+    // HELPERS
+    // ══════════════════════════════════════════════════════════════════
 
     private ImportJobDTO.ImportRapportFinal construireRapportFinal(
             int totalLignes, List<ImportJobDTO.LigneErreur> erreurs) {
